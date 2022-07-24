@@ -75,7 +75,7 @@ class MainScreenController(
 
     @OptIn(ExperimentalMaterialApi::class)
     val isDrawerVisible: Boolean
-        get() = drawer.isOpen
+        get() = drawer.isOpen || drawer.isExpanded
 
     @OptIn(ExperimentalMaterialApi::class)
     suspend fun showDrawer() {

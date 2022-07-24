@@ -6,15 +6,25 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.github.excu101.pluginsystem.model.Action
 import io.github.excu101.vortexfilemanager.base.utils.IntentScope
-import io.github.excu101.vortexfilemanager.base.utils.reduce
 import io.github.excu101.vortexfilemanager.base.utils.side
 import io.github.excu101.vortexfilemanager.data.FileModelSet
+import io.github.excu101.vortexfilemanager.data.fileModelSetOf
 import io.github.excu101.vortexfilemanager.util.listBuilder
 
 object Contracts {
 
     @Immutable
     sealed class State {
+
+        @Immutable
+        data class StorageScreenState(
+            val data: FileModelSet = fileModelSetOf(),
+            val isLoading: Boolean = false,
+            val loadingMessage: String = "",
+            val error: Throwable? = null,
+            val requiresPermission: Boolean = false,
+            val requiresSpecialPermission: Boolean = false,
+        )
 
         @Immutable
         class CriticalError(val error: Throwable) : State()
@@ -67,16 +77,6 @@ object Contracts {
             val action: (() -> Unit)? = null,
         ) : SideEffect()
     }
-}
-
-suspend fun IntentScope<Contracts.State, Contracts.SideEffect>.loading(
-    text: String? = null,
-) {
-    reduce { Contracts.State.Loading(text = text) }
-}
-
-suspend fun IntentScope<Contracts.State, Contracts.SideEffect>.error() {
-
 }
 
 suspend fun IntentScope<Contracts.State, Contracts.SideEffect>.message(

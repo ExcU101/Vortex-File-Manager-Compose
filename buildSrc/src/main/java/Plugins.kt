@@ -9,4 +9,5 @@ object Plugins {
     const val KotlinAndroid = "org.jetbrains.kotlin.android"
     const val KotlinDsl = "org.gradle.kotlin.kotlin-dsl"
     const val Android = "android"
+    const val Detekt = "io.gitlab.arturbosch.detekt"
 }

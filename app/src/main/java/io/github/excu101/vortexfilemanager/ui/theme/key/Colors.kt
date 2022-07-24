@@ -72,7 +72,7 @@ const val fileItemTitleSelectedTextColorKey = "fileItemTitleSelectedTextColor"
 const val fileItemSecondarySelectedTextColorKey = "fileItemSecondarySelectedTextColor"
 
 // LAYOUTS : Progress
-
+const val layoutProgressBarBackgroundColorKey = "layoutProgressBarBackgroundColorKey"
 const val layoutProgressBarTintColorKey = "layoutProgressBarTintColor"
 const val layoutProgressTitleTextColorKey = "layoutProgressTitleTextColor"
 const val layoutProgressActionTintColorKey = "layoutProgressActionTintColor"

@@ -12,13 +12,13 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 @Immutable
 class Trail(
-    val segments: List<Path>,
+    val segments: List<FileModel>,
     val selected: Int = segments.lastIndex,
 ) : Parcelable {
 
     companion object : Parceler<Trail> {
         override fun create(parcel: Parcel): Trail {
-            val paths = parcel.createStringArrayList()?.toPaths() ?: emptyList()
+            val paths = parcel.createStringArrayList()?.toPaths()?.map(::FileModel) ?: emptyList()
             val selected = parcel.readInt()
 
             return Trail(
@@ -33,18 +33,18 @@ class Trail(
         }
     }
 
-    operator fun get(path: Path) = segments.contains(element = path)
+    operator fun get(path: Path) = segments.contains(element = FileModel(path))
 
-    operator fun get(paths: Collection<Path>) = segments.containsAll(paths)
+    operator fun get(paths: Collection<Path>) = segments.containsAll(paths.map(::FileModel))
 
     operator fun get(index: Int) = segments[index]
 
     operator fun set(current: Int = selected, index: Int) = navigateToSelected(index)
 
-    val currentSelected: Path
-        get() = if (selected < 0) FileProvider.parsePath("") else segments[selected]
+    val currentSelected: FileModel
+        get() = if (selected < 0) FileModel(FileProvider.parsePath("")) else segments[selected]
 
-    fun slice(paths: Collection<Path>, selected: Int = segments.lastIndex): Trail {
+    fun slice(paths: Collection<FileModel>, selected: Int = segments.lastIndex): Trail {
         var list = segments
         for (path in paths) {
             list = list.dropWhile { segment ->
@@ -54,19 +54,19 @@ class Trail(
         return Trail(segments = list, selected = selected)
     }
 
-    fun navigateTo(path: Path) = navigateTo(newSegments = fromPath(path = path))
+    fun navigateTo(path: Path) = navigateTo(newSegments = fromPathToModels(path = path))
 
     inline fun navigateTo(path: Path, block: (Path) -> Unit): Trail {
-        val trail = navigateTo(newSegments = fromPath(path = path))
+        val trail = navigateTo(newSegments = fromPathToModels(path = path))
         block(path)
         return trail
     }
 
     fun navigateTo(path: Path, selected: Int) =
-        navigateTo(newSegments = fromPath(path = path), selected = selected)
+        navigateTo(newSegments = fromPathToModels(path = path), selected = selected)
 
     fun navigateTo(
-        newSegments: MutableList<Path>,
+        newSegments: MutableList<FileModel>,
         selected: Int = newSegments.lastIndex,
         withPrefixChecking: Boolean = true,
     ): Trail {
@@ -111,4 +111,8 @@ fun fromPath(path: Path): MutableList<Path> {
         cPath = cPath.parent ?: break
     }
     return list.asReversed()
+}
+
+fun fromPathToModels(path: Path): MutableList<FileModel> {
+    return fromPath(path = path).map(::FileModel).toMutableList()
 }

@@ -2,7 +2,7 @@ package io.github.excu101.vortexfilemanager.ui.screen
 
 sealed class Screen(val route: String) {
 
-    object FileList : Screen(route = "fileList")
+    object Storage : Screen(route = "storage")
     object FileInfo : Screen(route = "fileInfo") {
         const val args: String = "filePath"
     }

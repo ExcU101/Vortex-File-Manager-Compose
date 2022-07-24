@@ -56,6 +56,7 @@ fun defaultLightTheme(): Theme {
     Theme[fileItemIconSelectedTintColorKey] = Color(color = 0xFF3062FF)
     Theme[fileItemIconBackgroundSelectedColorKey] = Color.LightGray
 
+    Theme[layoutProgressBarBackgroundColorKey] = Color.White
     Theme[layoutProgressBarTintColorKey] = Color(color = 0xFF3062FF)
     Theme[layoutProgressTitleTextColorKey] = Color.Black
     Theme[layoutProgressActionTintColorKey] = Color.Black

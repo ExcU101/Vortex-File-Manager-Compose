@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.github.excu101.filesystem.fs.path.Path
+import io.github.excu101.vortexfilemanager.data.FileModel
 import io.github.excu101.vortexfilemanager.ui.theme.Theme
 import io.github.excu101.vortexfilemanager.ui.theme.key.*
 import io.github.excu101.vortexfilemanager.ui.theme.themedColorAnimation
@@ -29,7 +29,7 @@ import io.github.excu101.vortexfilemanager.ui.theme.themedColorAnimation
 @Composable
 fun TrailRow(
     modifier: Modifier = Modifier,
-    segments: List<Path>,
+    segments: List<FileModel>,
     currentSelected: Int = segments.lastIndex,
     contentPaddings: PaddingValues = PaddingValues(
         start = 16.dp,
@@ -38,7 +38,7 @@ fun TrailRow(
     ),
     scroller: LazyListState = rememberLazyListState(),
     scrollToSelected: Boolean = true,
-    onTrailClick: (Path) -> Unit = {},
+    onTrailClick: (FileModel) -> Unit = {},
 ) {
     Surface(
         modifier = modifier
@@ -50,20 +50,25 @@ fun TrailRow(
         color = Theme[trailSurfaceColorKey]
     ) {
         LazyRow(
+            modifier = Modifier,
             contentPadding = contentPaddings,
             state = scroller,
             content = {
                 itemsIndexed(
                     items = segments,
-                    key = { index, item -> item.hashCode() }
+                    key = { index, item -> item.path.hashCode() }
                 ) { i, path ->
                     val isSelected = i == currentSelected
                     Row(
                         modifier = Modifier
-                            .height(48.dp)
+                            .heightIn(48.dp)
                             .padding(horizontal = 4.dp)
-                            .fillMaxWidth()
-                            .clickable(
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            modifier = Modifier.clickable(
                                 interactionSource = remember {
                                     MutableInteractionSource()
                                 },
@@ -74,16 +79,12 @@ fun TrailRow(
                                             trailItemTitleSelectedTextColorKey
                                         else
                                             trailItemTitleTextColorKey
-                                    }
+                                    },
                                 )
                             ) {
                                 onTrailClick(path)
                             },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = path.getName().toString(),
+                            text = path.name,
                             style = TextStyle(
                                 fontSize = 16.sp,
                                 color = themedColorAnimation {

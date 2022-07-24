@@ -24,4 +24,7 @@ object Versions {
     // Unit test
     const val junitVer = "5.8.2"
     const val mockkVersion = "1.12.4"
+
+    // Lint
+    const val detektVer = "1.21.0"
 }

@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+
 plugins {
     id(Plugins.Application)
     id(Plugins.Parcelize)
@@ -11,6 +13,16 @@ kapt {
 }
 
 android {
+    signingConfigs {
+        create("release") {
+            val props = gradleLocalProperties(rootDir)
+
+            storeFile = file(props["signing.path"].toString())
+            storePassword = props["signing.pathPassword"].toString()
+            keyAlias = props["signing.alias"].toString()
+            keyPassword = props["signing.aliasPassword"].toString()
+        }
+    }
     namespace = AndroidConfigure.applicationId
     compileSdk = AndroidConfigure.targetSdk
 
@@ -43,6 +55,7 @@ android {
                     "proguard-rules.pro"
                 )
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

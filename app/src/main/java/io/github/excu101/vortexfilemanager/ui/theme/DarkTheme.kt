@@ -56,6 +56,7 @@ fun defaultDarkTheme(): Theme {
     Theme[fileItemIconSelectedTintColorKey] = Color(color = 0xFF3062FF)
     Theme[fileItemIconBackgroundSelectedColorKey] = Color.DarkGray
 
+    Theme[layoutProgressBarBackgroundColorKey] = Color.White
     Theme[layoutProgressBarTintColorKey] = Color(color = 0xFF3062FF)
     Theme[layoutProgressTitleTextColorKey] = Color.White
     Theme[layoutProgressActionTintColorKey] = Color.White

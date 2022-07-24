@@ -30,11 +30,10 @@ import io.github.excu101.vortexfilemanager.ui.theme.Theme
 import io.github.excu101.vortexfilemanager.ui.theme.key.*
 
 @Composable
-fun FileItemView(
+fun StorageItem(
     modifier: Modifier = Modifier,
     model: FileModel,
     isSelected: Boolean = false,
-    index: Int,
     onItemClick: () -> Unit = { },
     onIconClick: () -> Unit = { },
 ) {
@@ -156,13 +155,6 @@ fun FileItemView(
                 )
             }
             Spacer(modifier = Modifier.weight(1F, true))
-            Text(
-                text = "${index + 1}",
-                style = TextStyle(
-                    color = Theme[fileItemIndexTextColorKey],
-                    fontSize = 14.sp
-                )
-            )
         }
     }
 }
@@ -170,9 +162,18 @@ fun FileItemView(
 private fun parseContent(model: FileModel): String {
 
     val content =
-        if (model.isDirectory) "Items: ${model.path.properties().count}" else MimeType.fromName(
-            model.name
-        ).toString()
+        if (model.isDirectory) with(model.path.properties().count) {
+            when (this) {
+                0 -> {
+                    "Empty"
+                }
+                1 -> {
+                    "Item"
+                }
+                else -> "Items: $this"
+            }
+        }
+        else MimeType.fromName(model.name).toString()
 
     val size = model.size.toString()
 

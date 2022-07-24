@@ -30,6 +30,10 @@ suspend inline fun <S, E> IntentScope<S, E>.reduce(crossinline block: StateConte
     }
 }
 
+suspend inline fun <S, E> IntentScope<S, E>.state(crossinline block: S.() -> S) {
+    reduce { state.let(block) }
+}
+
 suspend fun <S, E> IntentScope<S, E>.side(effect: E) {
     scope.effect(effect)
 }

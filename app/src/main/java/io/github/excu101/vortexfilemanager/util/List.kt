@@ -75,7 +75,7 @@ open class MapSet<K, V> : AbstractMutableSet<V> {
     operator fun get(key: K) = map[key]
 
     open operator fun plus(element: V) = MapSet(keyExtractor).apply {
-        addAll(this)
+        addAll(elements = this)
         add(element)
     }
 

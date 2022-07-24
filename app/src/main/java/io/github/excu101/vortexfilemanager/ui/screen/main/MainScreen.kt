@@ -11,7 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import io.github.excu101.vortexfilemanager.ui.rememberMainScreenController
 import io.github.excu101.vortexfilemanager.ui.screen.Screen
-import io.github.excu101.vortexfilemanager.ui.screen.list.FileListScreen
+import io.github.excu101.vortexfilemanager.ui.screen.list.StorageScreen
 import io.github.excu101.vortexfilemanager.ui.screen.main.view.MainBottomDrawer
 import io.github.excu101.vortexfilemanager.ui.screen.main.view.MainScaffold
 import io.github.excu101.vortexfilemanager.ui.screen.plugin.PluginScreen
@@ -43,7 +43,7 @@ fun MainScreen() {
                 }
                 "Storage" -> {
                     currentPos = 0
-                    navigator.navigate(Screen.FileList.route)
+                    navigator.navigate(Screen.Storage.route)
                     controller.hideDrawer(scope)
                 }
                 "Plugin manager" -> {
@@ -82,12 +82,12 @@ fun MainScreen() {
         ) {
             NavHost(
                 navController = navigator,
-                startDestination = Screen.FileList.route
+                startDestination = Screen.Storage.route
             ) {
                 composable(
-                    route = Screen.FileList.route,
+                    route = Screen.Storage.route,
                 ) { entry ->
-                    FileListScreen(
+                    StorageScreen(
                         uiController = uiController,
                         navigator = navigator,
                         controller = controller,

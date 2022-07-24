@@ -1,6 +1,6 @@
 package io.github.excu101.vortexfilemanager.ui.screen.list.view
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -11,7 +11,7 @@ import androidx.compose.ui.util.fastMaxBy
 import io.github.excu101.vortexfilemanager.data.intent.Contracts
 
 @Composable
-fun FileListScreenScaffold(
+fun StorageScaffold(
     trail: @Composable () -> Unit,
     additional: @Composable () -> Unit,
     dialog: @Composable () -> Unit,
@@ -64,22 +64,21 @@ fun FileListScreenScaffold(
 }
 
 @Composable
-fun FileListScreenScaffold(
-    targetState: Contracts.State,
+fun StorageScaffold(
+    targetState: Contracts.State.StorageScreenState,
     trail: @Composable () -> Unit,
     additional: @Composable () -> Unit,
     dialog: @Composable () -> Unit,
-    content: @Composable (Contracts.State) -> Unit
+    content: @Composable (Contracts.State.StorageScreenState) -> Unit
 ) {
-    FileListScreenScaffold(
+    StorageScaffold(
         trail = trail,
         additional = additional,
         dialog = dialog,
         content = {
-            Crossfade(
-                targetState = targetState,
+            Box(
                 modifier = Modifier.padding(it),
-                content = content
+                content = { content(targetState) }
             )
         }
     )

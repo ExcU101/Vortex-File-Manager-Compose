@@ -3,6 +3,7 @@ plugins {
     id(Plugins.Library) version (Versions.androidVer) apply false
     id(Plugins.KotlinAndroid) version (Versions.kotlinVer) apply false
     id(Plugins.Hilt) version (Versions.hiltVer) apply false
+    id(Plugins.Detekt) version (Versions.detektVer) apply false
 }
 
 subprojects {

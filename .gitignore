@@ -22,3 +22,4 @@ local.properties
 /pluginsystem/build/
 /filesystem-unix/build/
 /pluginsystem-common/build/
+/signing

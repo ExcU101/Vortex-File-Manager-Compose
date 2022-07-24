@@ -2,8 +2,6 @@ package io.github.excu101.vortexfilemanager.data
 
 import android.os.Parcel
 import android.os.Parcelable
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.saveable.Saver
 import io.github.excu101.filesystem.FileProvider
 import io.github.excu101.filesystem.fs.attr.DirectoryProperties
 import io.github.excu101.filesystem.fs.attr.mimetype.MimeType
@@ -18,13 +16,15 @@ import kotlinx.parcelize.Parceler
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-@Immutable
 data class FileModel(
     val path: Path,
 ) : Parcelable {
 
     val attrs: UnixAttributes
         get() = FileProvider.readAttrs(path)
+
+    val parent: FileModel?
+        get() = path.parent?.let(::FileModel)
 
     val isHidden: Boolean
         get() = path.isHidden
@@ -77,20 +77,12 @@ data class FileModel(
 
 }
 
-fun FileModel.Companion.Saver() = Saver<FileModel, String>(
-    save = {
-        it.path.toString()
-    },
-    restore = {
-        FileModel(it.toPath())
-    }
-)
-
 class FileModelSet : MapSet<Path, FileModel>(FileModel::path) {
 
     override operator fun plus(element: FileModel) = fileModelSetOf(this)
 
-    val models: List<FileModel> = mutableListOf<FileModel>().apply { addAll(this) }
+    val models: List<FileModel>
+        get() = listOf(elements = toTypedArray())
 
     fun sort(comparator: Comparator<Path>): FileModelSet {
         return fileModelSetOf(map.toSortedMap(comparator).values)
