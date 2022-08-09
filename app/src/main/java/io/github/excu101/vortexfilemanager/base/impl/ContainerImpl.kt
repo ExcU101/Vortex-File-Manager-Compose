@@ -2,6 +2,7 @@ package io.github.excu101.vortexfilemanager.base.impl
 
 import io.github.excu101.vortexfilemanager.base.Collector
 import io.github.excu101.vortexfilemanager.base.Container
+import io.github.excu101.vortexfilemanager.base.Logger
 import io.github.excu101.vortexfilemanager.base.utils.ContainerScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.Unconfined
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 
 class ContainerImpl<S, E>(
     initState: S,
+    override val logger: Logger,
     private val parentScope: CoroutineScope,
 ) : Container<S, E> {
 
@@ -34,6 +36,9 @@ class ContainerImpl<S, E>(
         },
         effect = { effect ->
             emitEffect(effect)
+        },
+        message = {
+            logger.log(it)
         }
     )
 

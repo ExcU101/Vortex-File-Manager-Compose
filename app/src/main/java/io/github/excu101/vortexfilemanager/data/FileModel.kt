@@ -1,17 +1,19 @@
 package io.github.excu101.vortexfilemanager.data
 
+import android.os.Environment
 import android.os.Parcel
 import android.os.Parcelable
 import io.github.excu101.filesystem.FileProvider
+import io.github.excu101.filesystem.IdRegister
 import io.github.excu101.filesystem.fs.attr.DirectoryProperties
 import io.github.excu101.filesystem.fs.attr.mimetype.MimeType
 import io.github.excu101.filesystem.fs.attr.size.Size
 import io.github.excu101.filesystem.fs.path.Path
+import io.github.excu101.filesystem.fs.utils.asPath
 import io.github.excu101.filesystem.fs.utils.properties
 import io.github.excu101.filesystem.fs.utils.toPath
 import io.github.excu101.filesystem.unix.attr.UnixAttributes
 import io.github.excu101.filesystem.unix.attr.posix.PosixPermission
-import io.github.excu101.vortexfilemanager.util.MapSet
 import kotlinx.parcelize.Parceler
 import kotlinx.parcelize.Parcelize
 
@@ -19,6 +21,8 @@ import kotlinx.parcelize.Parcelize
 data class FileModel(
     val path: Path,
 ) : Parcelable {
+
+    val id: Int = IdRegister.register(IdRegister.Type.PATH)
 
     val attrs: UnixAttributes
         get() = FileProvider.readAttrs(path)
@@ -66,6 +70,9 @@ data class FileModel(
         get() = attrs.perms.containsAll(PosixPermission.executePerms)
 
     companion object : Parceler<FileModel> {
+
+        val SDModel = FileModel(Environment.getExternalStorageDirectory().asPath())
+
         override fun create(parcel: Parcel): FileModel {
             return FileModel(path = (parcel.readString() ?: "").toPath())
         }
@@ -75,45 +82,4 @@ data class FileModel(
         }
     }
 
-}
-
-class FileModelSet : MapSet<Path, FileModel>(FileModel::path) {
-
-    override operator fun plus(element: FileModel) = fileModelSetOf(this)
-
-    val models: List<FileModel>
-        get() = listOf(elements = toTypedArray())
-
-    fun sort(comparator: Comparator<Path>): FileModelSet {
-        return fileModelSetOf(map.toSortedMap(comparator).values)
-    }
-
-    companion object : Parceler<FileModelSet> {
-        override fun FileModelSet.write(parcel: Parcel, flags: Int) {
-            parcel.writeTypedList(toList())
-            parcel.writeList(toList())
-        }
-
-        override fun create(parcel: Parcel): FileModelSet {
-            val items = ArrayList<FileModel>()
-            parcel.readList(
-                items,
-                FileModel::class.java.classLoader
-            )
-
-            return FileModelSet().apply {
-                addAll(
-                    items
-                )
-            }
-        }
-    }
-}
-
-fun fileModelSetOf(models: Iterable<FileModel>) = FileModelSet().apply {
-    addAll(models)
-}
-
-fun fileModelSetOf(vararg model: FileModel) = FileModelSet().apply {
-    addAll(model)
 }

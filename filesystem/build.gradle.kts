@@ -25,5 +25,5 @@ android {
     }
 }
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.2")
+    implementation(Deps.Coroutines.Core)
 }

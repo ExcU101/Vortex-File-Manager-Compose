@@ -1,5 +1,6 @@
 package io.github.excu101.pluginsystem.common
 
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import io.github.excu101.filesystem.FileProvider
@@ -16,7 +17,7 @@ class DefaultOperationsPlugin : Plugin {
     override val attributes: Plugin.Attributes = object : Plugin.Attributes {
 
         override val name: String
-            get() = "Default operations plugin"
+            get() = "Vortex operations plugin"
 
         override val version: String
             get() = "1.0.0"
@@ -26,34 +27,42 @@ class DefaultOperationsPlugin : Plugin {
     }
 
     override fun activate() = registers {
-        FileProvider.installFileSystem(system = UnixFileSystem(UnixFileSystemProvider()))
+        FileProvider.install(system = UnixFileSystem(UnixFileSystemProvider()))
         registerGroup {
-            name = "Default operations"
+            name = "Vortex operations"
             icon = Icons.Outlined.DisabledByDefault
 
-            registerAction {
+            screen(route = "Common Screen", icon = Icons.Outlined.SmartScreen) {
+                Text(text = "Here's common")
+            }
+
+            action {
                 title = "Delete"
                 icon = Icons.Outlined.Delete
                 operation = UnixDeleteOperation::class
             }
 
-            registerAction {
+            action {
                 title = "Copy"
                 icon = Icons.Outlined.ContentCopy
                 operation = UnixCopyOperation::class
             }
 
-            registerAction {
+            action {
                 title = "Move"
                 icon = Icons.Outlined.DriveFileMove
                 operation = UnixRenameOperation::class
             }
 
-            registerAction {
+            action {
                 title = "Rename"
                 icon = Icons.Outlined.DriveFileRenameOutline
                 operation = UnixRenameOperation::class
             }
         }
+    }
+
+    override fun disable() {
+        registers { unregisterGroup() }
     }
 }

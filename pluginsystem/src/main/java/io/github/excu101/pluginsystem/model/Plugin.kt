@@ -2,9 +2,11 @@ package io.github.excu101.pluginsystem.model
 
 interface Plugin {
 
-    val attributes: Plugin.Attributes
+    val attributes: Attributes
 
     fun activate()
+
+    fun disable()
 
     interface Attributes {
         val name: String
@@ -14,6 +16,6 @@ interface Plugin {
 
     enum class State {
         ACTIVATED,
-        DISABLED
+        DISABLED,
     }
 }

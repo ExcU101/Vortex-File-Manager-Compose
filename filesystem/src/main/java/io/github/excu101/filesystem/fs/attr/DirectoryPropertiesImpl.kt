@@ -12,7 +12,7 @@ internal class DirectoryPropertiesImpl constructor(directory: Path) : DirectoryP
 
     init {
         FileProvider.newDirStream(directory).use { stream ->
-            stream.forEach { path ->
+            for (path in stream) {
                 val attrs = FileProvider.readAttrs(path, BasicAttrs::class)
                 if (attrs.isDirectory) {
                     if (attrs.size.isEmpty()) {

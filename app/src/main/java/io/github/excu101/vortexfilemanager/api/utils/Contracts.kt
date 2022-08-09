@@ -16,7 +16,7 @@ fun Any?.isNotNull(): Boolean {
     contract {
         returns(false) implies (this@isNotNull == null)
     }
-    return !isNull()
+    return this != null
 }
 
 @OptIn(ExperimentalContracts::class)

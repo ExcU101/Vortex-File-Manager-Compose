@@ -1,8 +1,8 @@
-
 import io.github.excu101.filesystem.FileProvider
 import io.github.excu101.filesystem.fs.path.Path
 import io.github.excu101.filesystem.unix.UnixFileSystem
 import io.github.excu101.filesystem.unix.UnixFileSystemProvider
+import io.github.excu101.vortexfilemanager.data.FileModel
 import io.github.excu101.vortexfilemanager.provider.AndroidFileProvider
 import io.mockk.coEvery
 import io.mockk.every
@@ -16,7 +16,7 @@ class ProviderTest {
 
     @BeforeEach
     fun installFileSystem() {
-        FileProvider.installFileSystem(system = UnixFileSystem(provider = UnixFileSystemProvider()))
+        FileProvider.install(system = UnixFileSystem(provider = UnixFileSystemProvider()))
     }
 
     private val provider = mockk<AndroidFileProvider>()
@@ -29,7 +29,7 @@ class ProviderTest {
         every { path } returns testPath
         coEvery { provider.provide(path) } returns listOfPath(10) {
             toPath(value = "$it")
-        }
+        }.map { FileModel(it) }
     }
 
     private fun listOfPath(count: Int, block: (Int) -> Path): List<Path> {

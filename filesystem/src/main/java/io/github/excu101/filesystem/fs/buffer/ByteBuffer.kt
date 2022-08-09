@@ -26,11 +26,7 @@ abstract class ByteBuffer internal constructor(
 
     abstract operator fun set(index: Int, value: Char): ByteBuffer
 
-    internal var heapBuffer: ByteArray = byteArrayOf()
     internal var offset = 0
-
-    val array: ByteArray
-        get() = heapBuffer
 
     val arrayOffset: Int
         get() {
@@ -43,10 +39,8 @@ abstract class ByteBuffer internal constructor(
         position: Int,
         limit: Int,
         capacity: Int,
-        heap: ByteArray,
         offset: Int
     ) : this(mark, position, limit, capacity) {
-        this.heapBuffer = heap
         this.offset = offset
     }
 

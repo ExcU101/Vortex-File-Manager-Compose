@@ -1,15 +1,18 @@
 package io.github.excu101.filesystem.unix
 
 import io.github.excu101.filesystem.fs.DirectoryStream
+import io.github.excu101.filesystem.fs.error.DirectoryAlreadyClosedException
 import io.github.excu101.filesystem.fs.error.SystemCallException
 import io.github.excu101.filesystem.fs.path.Path
 import io.github.excu101.filesystem.unix.path.UnixPath
+import kotlinx.coroutines.flow.callbackFlow
 import java.io.IOException
 
 class UnixDirectoryStream internal constructor(
     private val dir: UnixPath,
     private val pointer: Long,
-    private val filter: DirectoryStream.Filter<UnixPath> = DirectoryStream.Filter.acceptAll()
+    private val filter: DirectoryStream.Filter<UnixPath> = DirectoryStream.Filter.acceptAll(),
+    private val onError: (Throwable) -> Unit,
 ) : DirectoryStream<Path> {
 
     private var iterator: LinuxPathIterator? = null
@@ -20,31 +23,34 @@ class UnixDirectoryStream internal constructor(
     }
 
     private var isClosed: Boolean = false
-
-    private val block = Any()
+    private val locker = Any()
 
     override fun close() {
-        synchronized(block) {
+        synchronized(locker) {
             if (isClosed) return
             try {
                 UnixCalls.closeDir(pointer = pointer)
             } catch (exception: SystemCallException) {
-                throw exception
+                onError(exception)
             }
             isClosed = true
         }
     }
 
     override fun iterator(): Iterator<Path> {
-        synchronized(block) {
+        callbackFlow<Path> {
+            iterator?.next()?.let { trySend(it) }
+        }
+        synchronized(locker) {
             if (isClosed) {
-                throw Throwable("Closed dir")
+                onError(DirectoryAlreadyClosedException())
             }
             if (iterator == null) {
 
             }
             return LinuxPathIterator().also { iterator = it }
         }
+
     }
 
     private inner class LinuxPathIterator : MutableIterator<UnixPath> {
@@ -52,14 +58,15 @@ class UnixDirectoryStream internal constructor(
         private var isFinished = false
 
         override fun next(): UnixPath {
-            synchronized(block) {
+            synchronized(locker) {
                 if (!hasNext()) {
-                    throw Throwable("Doesn't have next")
+                    onError(Throwable("Doesn't have next"))
                 }
                 val path = nextPath!!
                 nextPath = null
                 return path
             }
+
         }
 
         override fun hasNext(): Boolean {
@@ -79,12 +86,13 @@ class UnixDirectoryStream internal constructor(
                 val dirent = try {
                     UnixCalls.readDir(pointer = pointer) ?: return null
                 } catch (exception: SystemCallException) {
-                    throw exception
+                    onError(exception)
+                    return null
                 }
 
-//                if (dirent.name.contentEquals(DOT) || dirent.name.contentEquals(DOUBLE_DOT)) {
-//                    continue
-//                }
+                if (dirent.name.contentEquals(DOT) || dirent.name.contentEquals(DOUBLE_DOT)) {
+                    continue
+                }
 
                 val path = dir.resolve(
                     other =
@@ -96,7 +104,8 @@ class UnixDirectoryStream internal constructor(
                 val accepted = try {
                     filter.accept(path)
                 } catch (exception: IOException) {
-                    throw exception
+                    onError(exception)
+                    false
                 }
                 if (!accepted) continue
 

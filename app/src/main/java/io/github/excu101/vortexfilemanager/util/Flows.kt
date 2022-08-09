@@ -10,4 +10,8 @@ suspend inline fun <T> MutableStateFlow<T>.emit(block: T.() -> T) {
     emit(value = block(value))
 }
 
+suspend inline fun <T> MutableStateFlow<T>.applier(block: T.() -> Unit) {
+    emit(value = value.apply(block))
+}
+
 val Context.pathDataStore: DataStore<Preferences> by preferencesDataStore(name = "path_data_store")

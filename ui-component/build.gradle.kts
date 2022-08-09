@@ -11,15 +11,6 @@ android {
         minSdk = AndroidConfigure.minSdk
         targetSdk = AndroidConfigure.targetSdk
     }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.composeCompilerVer
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -28,6 +19,12 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = Versions.composeCompilerVer
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -44,6 +41,8 @@ dependencies {
     implementation(Deps.Compose.Material)
     implementation(Deps.Compose.IconsCore)
     implementation(Deps.Compose.IconsExtended)
+
+    implementation(project(Deps.Application.PluginSystem))
 
     debugImplementation(Deps.Compose.Tooling)
     implementation(Deps.Compose.ToolingPreview)

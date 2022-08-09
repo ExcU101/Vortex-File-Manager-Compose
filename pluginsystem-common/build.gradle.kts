@@ -13,7 +13,6 @@ android {
 
         consumerProguardFiles("consumer-rules.pro")
     }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -26,8 +25,11 @@ android {
 }
 
 dependencies {
-    implementation(project(mapOf("path" to ":pluginsystem")))
     implementation(Deps.Compose.IconsExtended)
-    implementation(project(mapOf("path" to ":filesystem-unix")))
-    implementation(project(mapOf("path" to ":filesystem")))
+    implementation(Deps.Compose.Ui)
+    implementation(Deps.Compose.Material)
+
+    implementation(project(Deps.Application.PluginSystem))
+    implementation(project(Deps.Application.FileSystemUnix))
+    implementation(project(Deps.Application.FileSystem))
 }

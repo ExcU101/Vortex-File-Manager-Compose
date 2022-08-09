@@ -1,34 +1,43 @@
 package io.github.excu101.vortexfilemanager.ui.screen.list
 
 import android.os.Build
-import android.os.Environment
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.excu101.filesystem.FileProvider
 import io.github.excu101.filesystem.fs.attr.StandardOptions
 import io.github.excu101.filesystem.fs.path.Path
-import io.github.excu101.filesystem.fs.utils.asPath
-import io.github.excu101.filesystem.observer
+import io.github.excu101.filesystem.fs.utils.FileOperationObserver
 import io.github.excu101.filesystem.unix.operation.UnixCreateDirectoryOperation
 import io.github.excu101.filesystem.unix.operation.UnixCreateFileOperation
 import io.github.excu101.filesystem.unix.operation.UnixDeleteOperation
-import io.github.excu101.vortexfilemanager.base.utils.ViewModelContainerHandler
+import io.github.excu101.vortexfilemanager.base.Container
+import io.github.excu101.vortexfilemanager.base.ContainerHandler
+import io.github.excu101.vortexfilemanager.base.utils.container
 import io.github.excu101.vortexfilemanager.base.utils.intent
 import io.github.excu101.vortexfilemanager.base.utils.reduce
 import io.github.excu101.vortexfilemanager.base.utils.side
-import io.github.excu101.vortexfilemanager.data.*
-import io.github.excu101.vortexfilemanager.data.intent.Contracts.SideEffect
-import io.github.excu101.vortexfilemanager.data.intent.Contracts.State.StorageScreenState
+import io.github.excu101.vortexfilemanager.data.FileModel
+import io.github.excu101.vortexfilemanager.data.FileModel.Companion.SDModel
+import io.github.excu101.vortexfilemanager.data.FileModelSet
+import io.github.excu101.vortexfilemanager.data.Trail
+import io.github.excu101.vortexfilemanager.data.fromPathToModels
+import io.github.excu101.vortexfilemanager.data.intent.SideEffect
+import io.github.excu101.vortexfilemanager.data.intent.StorageDialogState
+import io.github.excu101.vortexfilemanager.data.intent.StorageDialogState.StorageCreateDialog
+import io.github.excu101.vortexfilemanager.data.intent.StorageDialogState.StorageEmptyDialog
+import io.github.excu101.vortexfilemanager.data.intent.StorageState
 import io.github.excu101.vortexfilemanager.provider.AndroidFileProvider
 import io.github.excu101.vortexfilemanager.provider.DataStoreOwner
 import io.github.excu101.vortexfilemanager.provider.ErrorHandler
-import kotlinx.coroutines.delay
+import io.github.excu101.vortexfilemanager.provider.FileModelSorter
+import io.github.excu101.vortexfilemanager.provider.FileModelSorter.*
+import io.github.excu101.vortexfilemanager.util.applier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -36,236 +45,240 @@ class StorageViewModel @Inject constructor(
     private val handle: SavedStateHandle,
     private val provider: AndroidFileProvider,
     private val owner: DataStoreOwner,
-) : ViewModelContainerHandler<StorageScreenState, SideEffect>(StorageScreenState(isLoading = true)),
-    ErrorHandler {
+) : ViewModel(), ContainerHandler<StorageState, SideEffect>, ErrorHandler {
 
     companion object Constants {
-        private const val PATH_KEY = "path"
         private const val TRAIL_KEY = "trail"
     }
 
-    private val _currentComparator: MutableStateFlow<Comparator<FileModel>> = MutableStateFlow(
-        compareBy<FileModel> { model ->
-            model.isDirectory
-        }.thenBy { model ->
-            model.size.inputMemory
-        }.thenBy { model ->
-            model.name
-        }
-    )
+    override val container: Container<StorageState, SideEffect> =
+        container(StorageState(isLoading = false, loadingMessage = "Launching..."))
 
-    val currentComparator: StateFlow<Comparator<FileModel>>
-        get() = _currentComparator.asStateFlow()
+    private val _data = mutableStateListOf<FileModel>()
+    val data: List<FileModel>
+        get() = _data
 
-    private val _selected = mutableStateListOf<FileModel>()
-    val selected: FileModelSet
-        get() = fileModelSetOf(_selected)
+    private val _selected = MutableStateFlow(FileModelSet())
+    val selected: StateFlow<FileModelSet>
+        get() = _selected.asStateFlow()
 
-    val trail: StateFlow<Trail> = handle.getStateFlow(
-        key = TRAIL_KEY,
-        initialValue = Trail(segments = listOf(), selected = -1)
-    )
+    val isAllSelected: Boolean
+        get() = selected === data
 
-    val currentPath: StateFlow<FileModel> = handle.getStateFlow(
-        key = PATH_KEY,
-        initialValue = FileModel(Environment.getExternalStorageDirectory().asPath())
-    )
+    var sort = Sort.NAME
+    var order = Order.A_Z
+    var filter = Filter.EMPTY
 
-    private val _currentOperation = MutableStateFlow<Operation?>(value = null)
-    val currentOperation: StateFlow<Operation?>
-        get() = _currentOperation.asStateFlow()
+    private val _dialog: MutableStateFlow<StorageDialogState> =
+        MutableStateFlow(StorageEmptyDialog)
+    val dialog: StateFlow<StorageDialogState>
+        get() = _dialog.asStateFlow()
+
+    val trail: StateFlow<Trail>
+        get() = handle.getStateFlow(
+            TRAIL_KEY,
+            Trail(segments = fromPathToModels(SDModel.path))
+        )
+
+    val currentModel: FileModel
+        get() = trail.value.currentSelected
 
     init {
         launch()
     }
 
     fun checkPerm() = intent {
-        reduce { state.copy(isLoading = true) }
+        reduce { state.copy(loadingMessage = "Checking...", isLoading = true) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!provider.checkManagePerm()) {
-                reduce { StorageScreenState(requiresSpecialPermission = true) }
+                reduce { StorageState(requiresSpecialPermission = true) }
             } else {
-                navigateTo(currentPath.value)
+                navigateTo()
             }
         } else {
             if (provider.requiresReadWritePerm()) {
-                reduce { StorageScreenState(requiresPermission = true) }
+                reduce { StorageState(requiresPermission = true) }
             } else {
-                navigateTo(currentPath.value)
+                navigateTo()
             }
         }
     }
 
-    infix fun choose(model: FileModelSet) {
-        if (selected.containsAll(model)) deselect(model) else select(model)
+    infix fun choose(model: List<FileModel>) {
+        if (selected.value.containsAll(model)) deselect(model) else select(model)
     }
 
-    infix fun select(
-        files: FileModelSet,
+    fun select(
+        files: List<FileModel>,
     ) = intent {
-        files.forEach { model ->
-            if (!selected.contains(model)) {
-                _selected.add(model)
-            }
-        }
+        _selected.applier { addAll(files) }
     }
 
     fun deselect(
-        files: FileModelSet,
+        files: List<FileModel>,
     ) = intent {
-        _selected.removeAll(files)
+        _selected.applier {
+            removeAll(files.toSet())
+        }
     }
 
     fun deselectLast() = intent {
-        deselect(fileModelSetOf(selected.last()))
+        _selected.applier {
+            remove(last())
+        }
     }
 
     fun selectAll() = intent {
-        _selected.addAll(state.data)
+        select(state.data)
     }
 
     fun deselectAll() = intent {
-        _selected.clear()
+        _selected.emit(FileModelSet())
     }
 
     fun navigateToParent() {
         trail.value.currentSelected.parent?.let { navigateTo(it) }
     }
 
-    infix fun navigateTo(
-        model: FileModel,
+    fun navigateTo(
+        model: FileModel = trail.value.currentSelected,
     ) = intent {
-        reduce { state.copy(isLoading = true) }
+        reduce { state.copy(isLoading = true, loadingMessage = "Navigating...") }
         handle[TRAIL_KEY] = trail.value.navigateTo(model.path)
         if (model.isDirectory) {
             val list = try {
-                fileModelSetOf(
-                    models = provider.provide(path = model.path).map(::FileModel)
-                        .sortedWith(currentComparator.value)
-                )
-            } catch (e: Exception) {
-                reduce { state.copy(error = e) }
+                FileModelSorter(provider.provide(path = model.path))
+                    .with(sort)
+                    .with(order)
+                    .with(filter)
+                    .output()
+            } catch (error: Exception) {
+                onError(error = error)
                 return@intent
             }
 
             if (list.isEmpty()) {
-                reduce {
-                    StorageScreenState(
-                        error = Throwable("${model.name} doesn't contain any elements")
-                    )
-//                    Warning(
-//                        icon = Icons.Outlined.Folder,
-//                        message = "${model.name} doesn't contain any elements",
-//                        actions = listBuilder {
-//                            item(
-//                                title = "Back to parent",
-//                                icon = Icons.Outlined.KeyboardArrowLeft,
-//                            )
-//                            item(
-//                                title = "Add some content",
-//                                icon = Icons.Outlined.Add,
-//                            )
-//                        }
-//                    )
-                }
+                onError(error = Throwable("${model.name} doesn't contain any elements"))
             } else {
                 reduce {
-                    StorageScreenState(data = list)
+                    StorageState(data = list)
                 }
             }
         } else {
-            reduce {
-                StorageScreenState(
-                    error = Throwable("File opening currently not supported${model.name}")
-                )
-            }
+            onError(Throwable("File opening currently not supported${model.name}"))
         }
     }
 
-    fun delete(data: FileModelSet = selected) = intent {
+    fun delete() = intent {
+        val data: List<FileModel> =
+            if (selected.value.isEmpty()) listOf(currentModel) else selected.value.toList()
         var progress = 0
         FileProvider.runOperation(
-            UnixDeleteOperation(
-                data = data.map(FileModel::path),
-                observer = observer(
+            operation = UnixDeleteOperation(data = data.map(FileModel::path)),
+            observers = listOf(
+                FileOperationObserver(
                     scope = viewModelScope,
-                    onNext = {
-                        progress++
-                        _currentOperation.emit(value = Operation(progress = "Deleting... ($progress/${data.size})"))
-                    },
-                    onComplete = {
-                        _currentOperation.emit(value = null)
-                    },
-                    onError = { error ->
-                        _currentOperation.emit(value = Operation(progress = error.message.toString()))
-                        delay(2000L)
-                        _currentOperation.emit(value = null)
+                    completion = {
                         removePath(data)
-                    }
+                    },
+                    error = { error ->
+                        onError(error = error)
+                    },
+                    action = {
+                        progress++
+                        side(SideEffect.Message(text = "Deleting... ($progress/${data.size})"))
+                    },
                 )
             )
         )
     }
 
-    fun showDialog(effect: SideEffect) = intent {
-        side(effect)
+    fun createDialog() = intent {
+        _dialog.emit(StorageCreateDialog)
     }
 
     fun hideDialog() = intent {
-        side(SideEffect.DialogEmpty)
+        _dialog.emit(StorageEmptyDialog)
     }
 
     fun launch() = intent {
         checkPerm()
     }
 
-    fun addPath(models: FileModelSet) = intent {
-        reduce { state.copy(data = fileModelSetOf(state.data + models)) }
+    fun openFolder() {
+        val model = selected.value.first()
+        navigateTo(model = model)
+        deselect(listOf(model))
     }
 
-    fun removePath(models: FileModelSet) = intent {
+    fun addPath(models: List<FileModel>) = intent {
+//        reduce {
+//            (
+//                data = (state as StorageData).data + models
+//            )
+//        }
+//        reduce { StorageData(data = (state as StorageData).data + models) }
+    }
+
+    fun removePath(models: List<FileModel>) = intent {
         if (trail.value[models.map(FileModel::path)]) {
             handle[TRAIL_KEY] = trail.value.slice(models)
         }
-        reduce { state.copy(data = fileModelSetOf(state.data - models)) }
+//        reduce { StorageData(data = (state as StorageData).data - models.toSet()) }
     }
 
     override fun onError(error: Throwable) = intent {
-        reduce { StorageScreenState(error = error) }
+        reduce { StorageState(isLoading = false, error = error) }
+    }
+
+    fun sort(
+        sort: Sort = this.sort,
+        order: Order = this.order,
+        filter: Filter = this.filter,
+    ) {
+
     }
 
     fun createDirectory(dest: Path) = intent {
-        UnixCreateDirectoryOperation(
-            path = dest,
-            mode = 777,
-            observer = observer(
-                onNext = {
-                    viewModelScope.launch {
-
+        hideDialog()
+        val src = if (selected.value.isEmpty()) currentModel.path else selected.value.first().path
+        FileProvider.runOperation(
+            operation = UnixCreateDirectoryOperation(path = src.resolve(dest), mode = 777),
+            observers = listOf(
+                FileOperationObserver(
+                    scope = viewModelScope,
+                    action = { value ->
+                        side(SideEffect.Message(text = "Creating ${value.getName()}"))
+                    },
+                    error = { error -> onError(error = error) },
+                    completion = {
+                        addPath(listOf(FileModel(dest)))
                     }
-                },
-                onError = ::onError,
-                onComplete = {
-                    addPath(fileModelSetOf(FileModel(dest)))
-                }
+                )
             )
-        ).perform()
+        )
     }
 
     fun createFile(dest: Path) = intent {
-        UnixCreateFileOperation(
-            path = dest,
-            flags = setOf(StandardOptions.WRITE, StandardOptions.READ, StandardOptions.APPEND),
-            mode = 777,
-            observer = observer(
-                onNext = {
-
-                },
-                onError = ::onError,
-                onComplete = {
-                    addPath(fileModelSetOf(FileModel(dest)))
-                }
+        hideDialog()
+        FileProvider.runOperation(
+            operation = UnixCreateFileOperation(
+                path = dest,
+                flags = setOf(StandardOptions.WRITE, StandardOptions.READ, StandardOptions.APPEND),
+                mode = 777
+            ),
+            observers = listOf(
+                FileOperationObserver(
+                    scope = viewModelScope,
+                    action = { path ->
+                        side(SideEffect.Message(text = "Creating ${dest.getName()}"))
+                    },
+                    error = { error -> onError(error) },
+                    completion = {
+                        addPath(listOf(FileModel(dest)))
+                    }
+                )
             )
-        ).perform()
+        )
     }
 }

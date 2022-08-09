@@ -3,7 +3,9 @@ package io.github.excu101.filesystem
 import io.github.excu101.filesystem.fs.DirectoryStream
 import io.github.excu101.filesystem.fs.FileSystem
 import io.github.excu101.filesystem.fs.attr.BasicAttrs
+import io.github.excu101.filesystem.fs.error.FileSystemErrorHandler
 import io.github.excu101.filesystem.fs.operation.FileOperation
+import io.github.excu101.filesystem.fs.operation.FileOperationObserver
 import io.github.excu101.filesystem.fs.path.Path
 import kotlinx.coroutines.Job
 import kotlin.reflect.KClass
@@ -11,6 +13,7 @@ import kotlin.reflect.KClass
 object FileProvider {
 
     private val systems = arrayListOf<FileSystem>()
+    private val handlers = arrayListOf<FileSystemErrorHandler>()
 
     val systemCount: Int
         get() = systems.size
@@ -18,8 +21,9 @@ object FileProvider {
     fun newDirStream(path: Path): DirectoryStream<Path> {
         try {
             return systems.last().provider.newDirectorySteam(path)
-        } catch (e: Exception) {
-            throw e
+        } catch (error: Throwable) {
+            notify(error = error)
+            return DirectoryStream
         }
     }
 
@@ -33,14 +37,30 @@ object FileProvider {
 
     inline fun <reified T : BasicAttrs> readAttrs(path: Path): T = readAttrs(path, T::class)
 
-    fun installFileSystem(system: FileSystem) {
+    fun install(system: FileSystem) {
         if (!systems.contains(system)) {
             systems.add(system)
         }
     }
 
-    fun runOperation(operation: FileOperation): Job {
-        return systems.last().provider.runOperation(operation = operation)
+    fun install(handler: FileSystemErrorHandler) {
+        handlers.add(handler)
+    }
+
+    fun uninstall(system: FileSystem) {
+        systems.remove(system)
+    }
+
+    fun uninstall(handler: FileSystemErrorHandler) {
+        handlers.remove(handler)
+    }
+
+    internal fun notify(error: Throwable) {
+        handlers.forEach { handler -> handler.onFileSystemError(error = error) }
+    }
+
+    fun runOperation(operation: FileOperation, observers: List<FileOperationObserver> = listOf()): Job {
+        return systems.last().provider.runOperation(operation = operation, observers = observers)
     }
 
     fun parsePath(input: String): Path {

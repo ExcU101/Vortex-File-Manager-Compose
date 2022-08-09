@@ -1,4 +1,13 @@
+#include <cstdlib>
 #include "jni.h"
+
+static jclass findClass(JNIEnv *env, const char *name) {
+    jclass local = env->FindClass(name);
+    auto global = (jclass) env->NewGlobalRef(local);
+    env->DeleteLocalRef(local);
+
+    return global;
+}
 
 static jclass findJavaFileDescriptorClass(JNIEnv *env) {
     static jclass clazz = nullptr;
@@ -12,57 +21,49 @@ static _jmethodID *findJavaFileDescriptorInitMethod(JNIEnv *env) {
     return env->GetMethodID(findJavaFileDescriptorClass(env), "<init>", "(I)V");
 }
 
+static int getIndexFromFileDescriptor(JNIEnv *env, jobject fileDescriptor) {
+    jint fd = -1;
+    jclass fdClass = env->FindClass("java/io/FileDescriptor");
+
+    if (fdClass != NULL) {
+        jfieldID fdClassDescriptorFieldID = env->GetFieldID(fdClass, "fd", "I");
+        if (fdClassDescriptorFieldID != NULL && fileDescriptor != NULL) {
+            fd = env->GetIntField(fileDescriptor, fdClassDescriptorFieldID);
+        }
+    }
+
+    return fd;
+}
+
 static jclass findUnixExceptionClass(
         JNIEnv *env
 ) {
-    jclass local = env->FindClass("io/github/excu101/filesystem/unix/error/UnixException");
+    static jclass exception = nullptr;
+    if (!exception) {
+        exception = findClass(env, "io/github/excu101/filesystem/unix/error/UnixException");
+    }
 
-    auto global = (jclass) env->NewGlobalRef(local);
-    return global;
+    return exception;
 }
 
-static jmethodID findUnixExceptionInitMethodClass(
-        JNIEnv *env
-) {
-    return env->GetMethodID(findUnixExceptionClass(env), "<init>", "(ILjava/lang/String;)V");
-}
-
-static jthrowable findUnixExceptionThrowable(JNIEnv *env, jstring message, int errno) {
-    env->NewObject(
-            findUnixExceptionClass(env),
-            findUnixExceptionInitMethodClass(env),
-            (jint) errno,
-            message
-    );
-}
-
-
-static jclass findUnixCallErrorClass(
-        JNIEnv *env
-) {
-    jclass local = env->FindClass(
-            "java/lang/Throwable"
-    );
-
-    auto global = (jclass) env->NewGlobalRef(local);
-    return global;
-}
-
-static jmethodID findLinuxCallErrorInitMethod(
+static jmethodID findUnixExceptionConstructorMethod(
         JNIEnv *env
 ) {
     return env->GetMethodID(
-            findUnixCallErrorClass(env),
+            findUnixExceptionClass(env),
             "<init>",
-            "(Ljava/lang/String;)V"
+            "(ILjava/lang/String;)V"
     );
 }
 
-static void __throwLinuxCallError(JNIEnv *env, char *message) {
-    env->ThrowNew(findUnixCallErrorClass(env), message);
+static void __throwUnixException(JNIEnv *env, int error, const char *name) {
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+    env->ThrowNew(findUnixExceptionClass(env), "exception");
 }
 
-#define UNIX_ERROR(env, ...) __throwLinuxCallError(env, __VA_ARGS__);
+#define UNIX_ERROR(...) __throwUnixException(__VA_ARGS__);
 
 static jclass findUnixStatusStructureStatClass(
         JNIEnv *env
@@ -71,6 +72,7 @@ static jclass findUnixStatusStructureStatClass(
             "io/github/excu101/filesystem/unix/attr/UnixStatusStructure"
     );
     auto global = (jclass) env->NewGlobalRef(local);
+    env->DeleteLocalRef(local);
     return global;
 }
 
@@ -89,6 +91,7 @@ static jclass findUnixDirentStructureClass(JNIEnv *env) {
             "io/github/excu101/filesystem/unix/attr/UnixDirentStructure"
     );
     auto global = (jclass) env->NewGlobalRef(local);
+    env->DeleteLocalRef(local);
     return global;
 }
 
@@ -104,6 +107,7 @@ static jclass findUnixFileSystemStatusStructureClass(JNIEnv *env) {
             "io/github/excu101/filesystem/unix/attr/UnixStructureFileSystemStatus"
     );
     auto global = (jclass) env->NewGlobalRef(local);
+    env->DeleteLocalRef(local);
     return global;
 }
 

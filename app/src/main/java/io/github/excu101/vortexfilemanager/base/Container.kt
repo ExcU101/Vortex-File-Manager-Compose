@@ -12,6 +12,8 @@ interface Container<S, E> {
 
     val collector: Collector<S>
 
+    val logger: Logger
+
     fun emit(block: suspend ContainerScope<S, E>.() -> Unit)
 
 }

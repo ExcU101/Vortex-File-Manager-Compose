@@ -4,11 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
@@ -21,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.excu101.ui.component.layout.SurfaceLazyRow
 import io.github.excu101.vortexfilemanager.data.FileModel
 import io.github.excu101.vortexfilemanager.ui.theme.Theme
 import io.github.excu101.vortexfilemanager.ui.theme.key.*
@@ -40,78 +39,29 @@ fun TrailRow(
     scrollToSelected: Boolean = true,
     onTrailClick: (FileModel) -> Unit = {},
 ) {
-    Surface(
+    SurfaceLazyRow(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(
-                min = 48.dp
-            ),
+            .heightIn(min = 48.dp),
         elevation = 8.dp,
-        color = Theme[trailSurfaceColorKey]
+        contentPadding = contentPaddings,
+        color = Theme[trailSurfaceColorKey],
+        state = scroller
     ) {
-        LazyRow(
-            modifier = Modifier,
-            contentPadding = contentPaddings,
-            state = scroller,
-            content = {
-                itemsIndexed(
-                    items = segments,
-                    key = { index, item -> item.path.hashCode() }
-                ) { i, path ->
-                    val isSelected = i == currentSelected
-                    Row(
-                        modifier = Modifier
-                            .heightIn(48.dp)
-                            .padding(horizontal = 4.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            modifier = Modifier.clickable(
-                                interactionSource = remember {
-                                    MutableInteractionSource()
-                                },
-                                indication = rememberRipple(
-                                    bounded = false,
-                                    color = Theme {
-                                        if (isSelected)
-                                            trailItemTitleSelectedTextColorKey
-                                        else
-                                            trailItemTitleTextColorKey
-                                    },
-                                )
-                            ) {
-                                onTrailClick(path)
-                            },
-                            text = path.name,
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = themedColorAnimation {
-                                    if (isSelected)
-                                        trailItemTitleSelectedTextColorKey
-                                    else
-                                        trailItemTitleTextColorKey
-                                }
-                            )
-                        )
-                        if (i != segments.size - 1) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Outlined.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = themedColorAnimation {
-                                    if (isSelected)
-                                        trailItemArrowSelectedTintColorKey
-                                    else
-                                        trailItemArrowTintColorKey
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        )
+        itemsIndexed(
+            items = segments,
+            key = { index, item -> item.path.hashCode() }
+        ) { i, model ->
+            val isSelected = i == currentSelected
+            val isLast = i != segments.size - 1
+
+            TrailItemView(
+                title = model.name,
+                isSelected = isSelected,
+                isLast = isLast,
+                onTrailClick = { onTrailClick(model) }
+            )
+        }
     }
 
     if (scrollToSelected) {
@@ -122,5 +72,63 @@ fun TrailRow(
                     scroller.animateScrollToItem(index = currentSelected)
             }
         )
+    }
+}
+
+@Composable
+private fun TrailItemView(
+    title: String,
+    isSelected: Boolean = false,
+    isLast: Boolean = false,
+    onTrailClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .heightIn(48.dp)
+            .padding(horizontal = 4.dp)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            modifier = Modifier.clickable(
+                interactionSource = remember {
+                    MutableInteractionSource()
+                },
+                indication = rememberRipple(
+                    bounded = false,
+                    color = Theme {
+                        if (isSelected)
+                            trailItemTitleSelectedTextColorKey
+                        else
+                            trailItemTitleTextColorKey
+                    },
+                ),
+                onClick = onTrailClick
+            ),
+            text = title,
+            style = TextStyle(
+                fontSize = 16.sp,
+                color = themedColorAnimation {
+                    if (isSelected)
+                        trailItemTitleSelectedTextColorKey
+                    else
+                        trailItemTitleTextColorKey
+                }
+            )
+        )
+        if (isLast) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = themedColorAnimation {
+                    if (isSelected)
+                        trailItemArrowSelectedTintColorKey
+                    else
+                        trailItemArrowTintColorKey
+                }
+            )
+        }
     }
 }

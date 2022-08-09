@@ -3,6 +3,5 @@
 
     <style name="Theme.VortexFileManager" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowTranslucentStatus">true</item>
-        <item name="android:windowTranslucentNavigation">true</item>
     </style>
 </resources>

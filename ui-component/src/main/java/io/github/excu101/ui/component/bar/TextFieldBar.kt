@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.excu101.ui.component.button.*
@@ -59,6 +60,7 @@ fun TextFieldBar(
     modifier: Modifier = Modifier,
     value: String,
     onValueChange: (String) -> Unit,
+    elevation: Dp = 8.dp,
     color: Color = MaterialTheme.colors.surface,
     navigationIcon: (@Composable RowScope.() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
@@ -73,9 +75,9 @@ fun TextFieldBar(
 
     SurfaceBar(
         modifier = modifier
-            .heightIn(min = 48.dp),
+            .heightIn(min = 56.dp),
         color = color,
-        elevation = 8.dp,
+        elevation = elevation,
         shape = shape,
     ) {
         if (navigationIcon != null) {
@@ -97,7 +99,6 @@ fun TextFieldBar(
             textStyle = textStyle,
         )
         if (actions != null) {
-
             actions()
         }
     }

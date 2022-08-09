@@ -23,3 +23,4 @@ local.properties
 /filesystem-unix/build/
 /pluginsystem-common/build/
 /signing
+/app/src/main/baseline-prof.txt

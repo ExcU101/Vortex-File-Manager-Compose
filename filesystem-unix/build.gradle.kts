@@ -27,6 +27,6 @@ android {
 }
 
 dependencies {
-
+    implementation(Deps.Coroutines.Core)
     implementation(project(mapOf("path" to ":filesystem")))
 }

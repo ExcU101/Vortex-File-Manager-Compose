@@ -35,7 +35,7 @@ fun StorageItem(
     model: FileModel,
     isSelected: Boolean = false,
     onItemClick: () -> Unit = { },
-    onIconClick: () -> Unit = { },
+    onSelect: () -> Unit = { },
 ) {
     val transition =
         updateTransition(targetState = isSelected, label = "fileItemSelectedTransition")
@@ -101,8 +101,7 @@ fun StorageItem(
     }
 
     Surface(
-        modifier = modifier
-            .clickable(onClick = onItemClick),
+        modifier = modifier.clickable(onClick = onItemClick),
         color = surfaceColor,
     ) {
         Row(
@@ -120,7 +119,7 @@ fun StorageItem(
                     )
                     .padding(all = 8.dp)
                     .clickable(
-                        onClick = onIconClick,
+                        onClick = onSelect,
                         indication = rememberRipple(bounded = false),
                         interactionSource = remember {
                             MutableInteractionSource()

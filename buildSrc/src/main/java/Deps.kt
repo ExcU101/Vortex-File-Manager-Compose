@@ -20,8 +20,8 @@ object Deps {
         const val Graphics = "androidx.compose.animation:animation-graphics:${Versions.composeVer}"
 
         const val Material = "androidx.compose.material:material:${Versions.composeVer}"
-        const val Material3 = "androidx.compose.material3:material3:1.0.0-alpha14"
-        const val Navigation = "androidx.navigation:navigation-compose:2.5.0"
+        const val Material3 = "androidx.compose.material3:material3:${Versions.composeMaterial3Ver}"
+        const val Navigation = "androidx.navigation:navigation-compose:${Versions.navigation}"
 
         const val Ui = "androidx.compose.ui:ui:${Versions.composeVer}"
         const val UiUtil = "androidx.compose.ui:ui-util:${Versions.composeVer}"
@@ -38,7 +38,6 @@ object Deps {
             "androidx.compose.material:material-icons-core:${Versions.composeVer}"
         const val IconsExtended =
             "androidx.compose.material:material-icons-extended:${Versions.composeVer}"
-
     }
 
     // Threads
@@ -47,12 +46,6 @@ object Deps {
         const val Android =
             "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutinesVer}"
         const val Test = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutinesVer}"
-    }
-
-    // DI
-    object Koin {
-        const val Android = "io.insert-koin:koin-android:${Versions.koinVer}"
-        const val Compose = "io.insert-koin:koin-androidx-compose:${Versions.koinVer}"
     }
 
     object Hilt {

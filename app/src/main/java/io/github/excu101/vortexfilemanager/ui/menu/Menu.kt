@@ -5,6 +5,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.github.excu101.pluginsystem.model.Action
+import io.github.excu101.ui.component.icon.Unspecified
 
 interface Menu {
     val title: String
@@ -110,7 +111,7 @@ inline fun MenuBuilder.action(block: MenuBuilder.() -> Unit): Boolean {
 inline fun SectionBuilder.action(block: MenuBuilder.() -> Unit): Boolean {
     val action = MenuBuilder(
         title = "Empty action",
-        icon = Icons.Outlined.Add,
+        icon = Unspecified,
     ).apply(block).build()
 
     return registerAction(

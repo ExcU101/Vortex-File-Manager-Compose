@@ -1,16 +1,14 @@
 package io.github.excu101.filesystem.unix.operation
 
 import io.github.excu101.filesystem.IdRegister
-import io.github.excu101.filesystem.Observer
-import io.github.excu101.filesystem.fs.error.SystemCallException
 import io.github.excu101.filesystem.fs.operation.FileOperation
 import io.github.excu101.filesystem.fs.path.Path
 import io.github.excu101.filesystem.unix.UnixCalls
+import io.github.excu101.filesystem.unix.error.UnixException
 
 class UnixCreateDirectoryOperation(
     private val path: Path,
     private val mode: Int,
-    private val observer: Observer<Path>? = null
 ) : FileOperation() {
 
     override val id: Int
@@ -18,13 +16,13 @@ class UnixCreateDirectoryOperation(
 
     override suspend fun perform() {
         try {
-            observer?.onNext(path)
+            notify(path)
             UnixCalls.mkdir(path.bytes, mode)
-        } catch (exception: SystemCallException) {
-            observer?.onError(exception)
+        } catch (exception: UnixException) {
+            notify(exception)
             return
         }
 
-        observer?.onComplete()
+        notify()
     }
 }

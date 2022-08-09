@@ -1,6 +1,7 @@
 object Plugins {
     const val Library = "com.android.library"
     const val Application = "com.android.application"
+    const val Test = "com.android.test"
     const val Hilt = "com.google.dagger.hilt.android"
     const val HiltPlugin = "dagger.hilt.android.plugin"
     const val Parcelize = "kotlin-parcelize"

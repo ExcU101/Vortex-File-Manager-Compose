@@ -21,7 +21,7 @@ const val mainBarActionIconContextualTintColorKey = "mainBarActionIconContextual
 const val mainBarTitleContextualTextColorKey = "mainBarTitleContextualTextColor"
 
 // MAIN SCREEN : Drawer
-
+const val mainDrawerTitleColorKey = "mainDrawerTitleColor"
 const val mainDrawerSurfaceColorKey = "mainDrawerSurfaceColor"
 const val mainDrawerActionIconTintColorKey = "mainDrawerActionIconTintColor"
 const val mainDrawerActionTitleTextColorKey = "mainDrawerActionTitleTextColor"

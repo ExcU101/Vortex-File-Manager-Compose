@@ -10,6 +10,11 @@
 #include "attrs.cpp"
 #include "operations.cpp"
 
+namespace Unix {}
+
+static void clearErrno() {
+    errno = 0;
+}
 
 static char *fromByteArrayToPath(
         JNIEnv *env,
@@ -35,14 +40,6 @@ static jobject doStat(
     struct stat64 status = {};
     isLinkStatus ? isLinkExists(path, &status) : isExists(path, &status);
     free(path);
-
-    switch (errno) {
-        case ENOTDIR:
-            break;
-        case ENAMETOOLONG:
-            UNIX_ERROR(env, strcasestr(path, "Path name is too long"))
-            break;
-    }
 
     auto userId = (jint) status.st_uid;
     auto groupId = (jint) status.st_gid;
@@ -112,19 +109,9 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_delete(
         jobject thiz,
         jbyteArray path
 ) {
+    clearErrno();
     char *cPath = fromByteArrayToPath(env, path);
-    if (unlink(cPath) == 0) {
-        LOGV("File deleted.")
-    }
-
-    switch (errno) {
-        case EACCES:
-            UNIX_ERROR(env, "Cannot get access")
-            break;
-        case ENOTDIR:
-            UNIX_ERROR(env, "This is not directory.")
-            break;
-    }
+    unlink(cPath);
 
     free(cPath);
 }
@@ -136,6 +123,7 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_closeDir(
         jobject thiz,
         jlong pointer
 ) {
+    clearErrno();
     DIR *dir = (DIR *) pointer;
     closedir(dir);
 }
@@ -144,17 +132,11 @@ jlong openDirectory(
         JNIEnv *env,
         char *path
 ) {
+    clearErrno();
     DIR *pointer = opendir(path);
+//    LOGV("%s", path)
+//    LOGV("%ld", (jlong) pointer)
     free(path);
-
-    switch (errno) {
-        case EACCES:
-            UNIX_ERROR(env, "Cannot get access")
-            break;
-        case ENOTDIR:
-            UNIX_ERROR(env, "This is not directory.")
-            break;
-    }
 
     return (jlong) pointer;
 }
@@ -173,12 +155,10 @@ static jobject newLinuxDirentStruct(
         JNIEnv *env,
         const struct dirent64 *directory
 ) {
-    static jmethodID constructor(0);
+    static jmethodID constructor(NULL);
     if (!constructor) {
         constructor = findUnixDirentStructureInitMethod(env);
     }
-
-    if (!directory) return nullptr;
 
     auto inode = (jlong) directory->d_ino;
     jlong offset = directory->d_off;
@@ -200,18 +180,6 @@ static jobject newLinuxDirentStruct(
             type,
             bytes
     );
-}
-
-static int getItemCount(char *path) {
-    int count = 0;
-    DIR *dir;
-    dir = opendir(path);
-    if (dir != nullptr) {
-        while (readdir64(dir)) { count++; }
-        (void) closedir(dir);
-    } else return 0;
-
-    return count;
 }
 
 extern "C"
@@ -236,25 +204,19 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_readDir(
         jobject thiz,
         jlong pointer
 ) {
+    clearErrno();
+
     DIR *dir = (DIR *) pointer;
 
-    dirent64 *directory = readdir64(dir);
+    LOGV("%ld", pointer)
 
+    struct dirent64 *directory = readdir64(dir);
 
-    switch (errno) {
-        case EBADF:
-            UNIX_ERROR(env, "Invalid pointer to directory")
-            break;
-        case EOVERFLOW:
-            UNIX_ERROR(env, "Stream is overflowed")
-            break;
-        case ENOENT:
-            UNIX_ERROR(env, "Invalid position in directory stream")
-            break;
-        case EINTR:
-            UNIX_ERROR(env, "Something gone wrong...")
-            break;
+    if (!directory) {
+        return nullptr;
     }
+
+    perror("");
 
     return newLinuxDirentStruct(env, directory);
 }
@@ -298,20 +260,11 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_mkdir(
         jbyteArray path,
         jint mode
 ) {
+    clearErrno();
     char *cPath = fromByteArrayToPath(env, path);
     auto cMode = (mode_t) mode;
-    if (!makeDirectory(cPath, cMode)) {
-        UNIX_ERROR(env, "Something gone wrong")
-    }
+    makeDirectory(cPath, cMode);
     free(cPath);
-    switch (errno) {
-        case EEXIST:
-
-            break;
-        case EACCES:
-
-            break;
-    }
 }
 
 static jobject doStatVfs(JNIEnv *env, const struct statvfs64 *statvfs) {
@@ -356,11 +309,10 @@ Java_io_github_excu101_filesystem_linux_LinuxCalls_statvfs(
         jobject thiz,
         jbyteArray path
 ) {
+    clearErrno();
     struct statvfs64 *statvfs = {};
     char *cPath = fromByteArrayToPath(env, path);
-    if (!statusFileSystem(cPath, statvfs)) {
-        UNIX_ERROR(env, "Cannot get file system status");
-    }
+    statusFileSystem(cPath, statvfs);
 
     return doStatVfs(env, statvfs);
 }
@@ -372,14 +324,32 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_rename(
         jbyteArray source,
         jbyteArray dest
 ) {
+    clearErrno();
     char *cSource = fromByteArrayToPath(env, source);
     char *cDest = fromByteArrayToPath(env, dest);
     renameFile(cSource, cDest);
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_io_github_excu101_filesystem_fs_operation_NativeCalls_pointerRead(
+        JNIEnv *env,
+        jobject thiz,
+        jint descriptor,
+        jlong address,
+        jlong length,
+        jlong pointer
+) {
+    clearErrno();
+    jint result = pread64(descriptor, &address, length, pointer);
 
     if (errno != 0) {
-        UNIX_ERROR(env, "Error occurred")
+
     }
+
+    return result;
 }
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_io_github_excu101_filesystem_unix_UnixCalls_close(
@@ -397,4 +367,13 @@ Java_io_github_excu101_filesystem_fs_operation_NativeCalls_close(
         jint descriptor
 ) {
     closeFileDescriptor(descriptor);
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_io_github_excu101_filesystem_fs_operation_NativeCalls_getFileDescriptor(
+        JNIEnv *env,
+        jobject thiz,
+        jobject original
+) {
+    return getIndexFromFileDescriptor(env, original);
 }

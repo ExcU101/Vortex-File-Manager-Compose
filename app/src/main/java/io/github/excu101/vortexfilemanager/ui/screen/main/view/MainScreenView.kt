@@ -2,6 +2,7 @@ package io.github.excu101.vortexfilemanager.ui.screen.main.view
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
@@ -51,9 +52,9 @@ fun MainScaffold(
         TextFieldBar(
             color = Theme[mainBarSurfaceColorKey],
             modifier = Modifier
-                .padding(16.dp)
                 .graphicsLayer { translationY = offset.toPx() },
             value = request,
+            shape = RoundedCornerShape(0),
             onValueChange = { newRequest ->
                 request = newRequest
             },
@@ -129,7 +130,7 @@ private fun MainScaffoldLayout(
             }
 
             val bodyContentPlaces = subcompose(slotId = "content") {
-                content(PaddingValues())
+                content(PaddingValues(bottom = bottomBarHeight.toDp()))
             }.fastMap { it.measure(looseConstraints.copy(maxHeight = layoutHeight)) }
 
             bodyContentPlaces.fastForEach {

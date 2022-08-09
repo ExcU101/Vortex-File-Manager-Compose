@@ -14,9 +14,8 @@ kapt {
 
 android {
     signingConfigs {
-        create("release") {
+        create(BuildConfig.Release.Name) {
             val props = gradleLocalProperties(rootDir)
-
             storeFile = file(props["signing.path"].toString())
             storePassword = props["signing.pathPassword"].toString()
             keyAlias = props["signing.alias"].toString()
@@ -45,7 +44,7 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName(BuildConfig.Release.Name) {
             isShrinkResources = true
             isMinifyEnabled = true
             multiDexKeepProguard = file(path = "proguard-rules.pro")
@@ -57,8 +56,18 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
         }
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+        }
     }
     compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    java {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
@@ -78,8 +87,8 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path = file(path = "src/main/cpp/CMakeLists.txt")
-            version = "3.18.1"
+            path = file(BuildConfig.CMake.Path)
+            version = Versions.cmakeVer
         }
     }
 }
@@ -93,6 +102,7 @@ dependencies {
     implementation(Deps.AndroidX.Collection)
     implementation(Deps.AndroidX.Core)
     implementation(Deps.AndroidX.DataStorePreferences)
+    implementation("androidx.profileinstaller:profileinstaller:1.2.0")
 
     implementation(Deps.Lottie.Compose)
 

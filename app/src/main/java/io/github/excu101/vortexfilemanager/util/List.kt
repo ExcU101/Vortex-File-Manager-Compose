@@ -4,8 +4,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.SavedStateHandle
 import io.github.excu101.pluginsystem.model.Action
 
-fun <T> SavedStateHandle.get(key: String, defValue: T): T {
+operator fun <T> SavedStateHandle.get(key: String, defValue: T): T {
     return get<T>(key) ?: defValue
+}
+
+operator fun <S, F> MutableList<Pair<S, F>>.set(key: S, value: F) {
+    if (!contains(key to value)) {
+        add(key to value)
+    }
 }
 
 interface ListBuilder<T> {

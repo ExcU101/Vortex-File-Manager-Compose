@@ -7,18 +7,20 @@ class HeapByteBuffer : ByteBuffer {
         position = 0,
         limit = limit,
         capacity = capacity,
-        heap = ByteArray(capacity),
         offset = 0
-    )
+    ) {
+       this.heapBuffer = ByteArray(capacity)
+    }
 
     constructor(heap: ByteArray, offset: Int, length: Int) : super(
         mark = -1,
         position = offset,
         limit = offset + length,
         capacity = heap.size,
-        heap = heap,
         offset = 0
-    )
+    ) {
+        this.heapBuffer = heap
+    }
 
     protected constructor(
         heap: ByteArray,
@@ -26,15 +28,18 @@ class HeapByteBuffer : ByteBuffer {
         position: Int,
         limit: Int,
         capacity: Int,
-        offset: Int
+        offset: Int,
     ) : super(
         mark = mark,
         position = position,
         limit = limit,
         capacity = capacity,
-        heap = heap,
         offset = offset,
-    )
+    ) {
+        this.heapBuffer = heap
+    }
+
+    internal val heapBuffer: ByteArray
 
     private fun indexWithOffset(index: Int): Int {
         return index + offset
@@ -51,7 +56,6 @@ class HeapByteBuffer : ByteBuffer {
     fun get(): Byte = get(nextGetIndex())
 
     override operator fun get(index: Int): Byte {
-
         return heapBuffer[indexWithOffset(checkIndex(index))]
     }
 

@@ -6,7 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
+import io.github.excu101.ui.component.icon.Unspecified
 
 object Theme {
 
@@ -24,6 +26,8 @@ object Theme {
     val dark by lazy {
         isDark = true
     }
+
+    private val icons: HashMap<String, ImageVector> = hashMapOf()
 
     private val text: HashMap<String, String> = hashMapOf()
 
@@ -53,17 +57,22 @@ object Theme {
         return getDp(key = key())
     }
 
+    fun getIcon(key: String): ImageVector = icons[key] ?: Unspecified
+
+    inline fun getIcon(key: () -> String): ImageVector = getIcon(key())
+
     inline operator fun <reified T : Any> get(key: String): T {
         val value = when (T::class) {
             Color::class -> getColor(key = key)
             Dp::class -> getDp(key = key)
             String::class -> getText(key = key)
+            ImageVector::class -> getIcon(key = key)
             else -> throw Throwable("Unsupported type")
         }
         return value as T
     }
 
-    inline operator fun <reified T : Any> get(key: () -> String): T = get<T>(key())
+    inline operator fun <reified T : Any> get(key: () -> String): T = get(key())
 
     operator fun set(key: String, value: Color) {
         colors[key] = value
@@ -75,6 +84,10 @@ object Theme {
 
     operator fun set(key: String, value: String) {
         text[key] = value
+    }
+
+    operator fun set(key: String, value: ImageVector) {
+        icons[key] = value
     }
 
     init {

@@ -1,6 +1,6 @@
 plugins {
-    id("com.android.library")
-    kotlin("android")
+    id(Plugins.Library)
+    kotlin(Plugins.Android)
 }
 
 android {
@@ -11,10 +11,8 @@ android {
         minSdk = AndroidConfigure.minSdk
         targetSdk = AndroidConfigure.targetSdk
 
-
         consumerProguardFiles("consumer-rules.pro")
     }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -29,6 +27,6 @@ android {
 dependencies {
     implementation(Deps.Compose.Ui)
     implementation(Deps.Compose.IconsCore)
-    implementation(project(mapOf("path" to ":filesystem")))
+    implementation(project(Deps.Application.FileSystem))
     implementation(kotlin("reflect"))
 }

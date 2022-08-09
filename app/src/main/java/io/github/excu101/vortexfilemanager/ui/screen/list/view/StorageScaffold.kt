@@ -1,20 +1,16 @@
 package io.github.excu101.vortexfilemanager.ui.screen.list.view
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxBy
-import io.github.excu101.vortexfilemanager.data.intent.Contracts
 
 @Composable
-fun StorageScaffold(
+private fun StorageScaffoldImpl(
     trail: @Composable () -> Unit,
     additional: @Composable () -> Unit,
-    dialog: @Composable () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
     SubcomposeLayout { constraints ->
@@ -35,10 +31,6 @@ fun StorageScaffold(
 
             val additionalHeight = additionalPlaces.fastMaxBy { it.height }?.height ?: 0
 
-            val dialogPlaces = subcompose("dialog", dialog).fastMap {
-                it.measure(looseConstraints)
-            }
-
             val contentPlaces = subcompose("content") {
 //                bottom = additionalHeight.toDp(),
                 content(PaddingValues(top = trailHeight.toDp()))
@@ -56,29 +48,25 @@ fun StorageScaffold(
                 it.place(x = 0, y = layoutHeight - additionalHeight)
             }
 
-            dialogPlaces.forEach {
-                it.place(x = 0, y = 0)
-            }
         }
     }
 }
 
 @Composable
 fun StorageScaffold(
-    targetState: Contracts.State.StorageScreenState,
     trail: @Composable () -> Unit,
     additional: @Composable () -> Unit,
-    dialog: @Composable () -> Unit,
-    content: @Composable (Contracts.State.StorageScreenState) -> Unit
+    content: @Composable BoxScope.() -> Unit
 ) {
-    StorageScaffold(
+    StorageScaffoldImpl(
         trail = trail,
         additional = additional,
-        dialog = dialog,
         content = {
             Box(
-                modifier = Modifier.padding(it),
-                content = { content(targetState) }
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it),
+                content = content
             )
         }
     )

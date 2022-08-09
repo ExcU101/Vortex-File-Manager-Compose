@@ -4,7 +4,10 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import io.github.excu101.pluginsystem.model.Action
+import io.github.excu101.pluginsystem.model.GroupAction
+import io.github.excu101.pluginsystem.utils.group
 import io.github.excu101.vortexfilemanager.data.intent.ActionListener
+import io.github.excu101.vortexfilemanager.ui.view.action.BookmarkAction
 import io.github.excu101.vortexfilemanager.ui.view.action.PluginsAction
 import io.github.excu101.vortexfilemanager.ui.view.action.SettingsAction
 import io.github.excu101.vortexfilemanager.ui.view.action.StorageAction
@@ -17,7 +20,7 @@ import kotlinx.coroutines.launch
 @Immutable
 @OptIn(ExperimentalMaterialApi::class)
 class MainScreenController(
-    initMenu: List<Action>,
+    initMenu: Collection<GroupAction>,
     val drawer: BottomDrawerState,
     val snackbar: SnackbarHostState,
     val bar: BarController,
@@ -27,28 +30,21 @@ class MainScreenController(
     val actionListeners: List<ActionListener>
         get() = _actionListeners
 
-    var menu: SnapshotStateList<Action> = mutableStateListOf(elements = initMenu.toTypedArray())
+    var menu: SnapshotStateList<GroupAction> =
+        mutableStateListOf(elements = initMenu.toTypedArray())
 
-    fun changeMenu(block: SnapshotStateList<Action>.() -> Unit) {
+    fun changeMenu(block: SnapshotStateList<GroupAction>.() -> Unit) {
         menu.apply(block)
     }
 
     var navigationIconState by mutableStateOf(MenuIconState.MENU)
 
     inline fun subscribeOnAction(crossinline block: (Action) -> Unit) {
-        subscribeOnAction(object : ActionListener {
-            override fun onCall(action: Action) {
-                block(action)
-            }
-        })
+        subscribeOnAction(ActionListener { action -> block(action) })
     }
 
     inline fun subscribeOnAction(index: Int, crossinline block: (Action) -> Unit) {
-        subscribeOnAction(index, object : ActionListener {
-            override fun onCall(action: Action) {
-                block(action)
-            }
-        })
+        subscribeOnAction(index, ActionListener { action -> block(action) })
     }
 
     fun subscribeOnAction(index: Int, listener: ActionListener) {
@@ -126,10 +122,15 @@ class MainScreenController(
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun rememberMainScreenController(
-    initMenu: List<Action> = listOf(
-        StorageAction,
-        PluginsAction,
-        SettingsAction
+    initMenu: List<GroupAction> = listOf(
+        group(title = "Main") {
+            item(StorageAction)
+            item(PluginsAction)
+        },
+        group(title = "Additional") {
+            item(BookmarkAction)
+            item(SettingsAction)
+        }
     ),
     drawer: BottomDrawerState = rememberBottomDrawerState(initialValue = BottomDrawerValue.Closed),
     snackbarHostState: SnackbarHostState = remember {

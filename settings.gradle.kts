@@ -15,10 +15,11 @@ dependencyResolutionManagement {
 rootProject.name = "Vortex File Manager"
 include(
     ":app",
+    ":benchmark",
     ":filesystem",
     ":filesystem-unix",
     ":pluginsystem",
     ":pluginsystem-common",
-    ":manifest-dsl"
+    ":manifest-dsl",
+    ":ui-component"
 )
-include(":ui-component")

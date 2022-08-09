@@ -1,91 +1,44 @@
 package io.github.excu101.vortexfilemanager.data.intent
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.graphics.vector.ImageVector
-import io.github.excu101.pluginsystem.model.Action
 import io.github.excu101.vortexfilemanager.base.utils.IntentScope
 import io.github.excu101.vortexfilemanager.base.utils.side
-import io.github.excu101.vortexfilemanager.data.FileModelSet
-import io.github.excu101.vortexfilemanager.data.fileModelSetOf
-import io.github.excu101.vortexfilemanager.util.listBuilder
+import io.github.excu101.vortexfilemanager.data.FileModel
 
-object Contracts {
+@Immutable
+data class StorageState(
+    val data: List<FileModel> = listOf(),
+    val isLoading: Boolean = false,
+    val loadingMessage: String = "",
+    val error: Throwable? = null,
+    val requiresPermission: Boolean = false,
+    val requiresSpecialPermission: Boolean = false,
+)
 
-    @Immutable
-    sealed class State {
-
-        @Immutable
-        data class StorageScreenState(
-            val data: FileModelSet = fileModelSetOf(),
-            val isLoading: Boolean = false,
-            val loadingMessage: String = "",
-            val error: Throwable? = null,
-            val requiresPermission: Boolean = false,
-            val requiresSpecialPermission: Boolean = false,
-        )
-
-        @Immutable
-        class CriticalError(val error: Throwable) : State()
-
-        @Immutable
-        data class FileList(
-            val data: FileModelSet,
-            val actions: List<Action> = listBuilder { },
-        ) : State()
-
-        @Immutable
-        class Loading(val text: String? = null) : State()
-
-        @Immutable
-        object RequiresPerm : State()
-
-        @Immutable
-        object RequiresFullStoragePerm : State()
-
-        @Immutable
-        class Warning(
-            val message: String,
-            val icon: ImageVector = Icons.Outlined.Info,
-            val actions: List<Action> = listOf(),
-        ) : State()
-    }
-
-    sealed class SideEffect {
-        object Empty : SideEffect()
-
-        object DialogEmpty : SideEffect()
-        object DialogCreate : SideEffect()
-        class DialogWarning(
-            val message: String,
-        ) : SideEffect()
-
-        class ModelInfo : SideEffect() {
-            override fun equals(other: Any?): Boolean {
-                return this === other
-            }
-
-            override fun hashCode(): Int {
-                return System.identityHashCode(this)
-            }
-        }
-
-        class Message(
-            val text: String,
-            val labelAction: String? = null,
-            val action: (() -> Unit)? = null,
-        ) : SideEffect()
-    }
+@Immutable
+sealed class StorageDialogState {
+    object StorageEmptyDialog : StorageDialogState()
+    object StorageCreateDialog : StorageDialogState()
+    class StorageWarningDialog(val message: String) : StorageDialogState()
 }
 
-suspend fun IntentScope<Contracts.State, Contracts.SideEffect>.message(
+sealed class SideEffect {
+    object Empty : SideEffect()
+
+    class Message(
+        val text: String,
+        val labelAction: String? = null,
+        val action: (() -> Unit)? = null,
+    ) : SideEffect()
+}
+
+suspend fun IntentScope<*, SideEffect>.message(
     text: String,
     labelAction: String? = null,
     action: (() -> Unit)? = null,
 ) {
     side(
-        effect = Contracts.SideEffect.Message(
+        effect = SideEffect.Message(
             text = text,
             labelAction = labelAction,
             action = action

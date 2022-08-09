@@ -4,30 +4,47 @@ import androidx.compose.material.BottomDrawer
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import io.github.excu101.pluginsystem.model.Action
+import io.github.excu101.pluginsystem.model.GroupAction
+import io.github.excu101.pluginsystem.provider.Managers
+import io.github.excu101.ui.component.layout.SelectableSectionList
 import io.github.excu101.vortexfilemanager.ui.MainScreenController
 import io.github.excu101.vortexfilemanager.ui.theme.Theme
 import io.github.excu101.vortexfilemanager.ui.theme.key.mainDrawerSurfaceColorKey
+import io.github.excu101.vortexfilemanager.util.drawerColors
+import io.github.excu101.vortexfilemanager.util.item
+import io.github.excu101.vortexfilemanager.util.listBuilder
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun MainBottomDrawer(
     modifier: Modifier = Modifier,
     controller: MainScreenController,
-    currentScreenSelected: Int,
-    content: @Composable () -> Unit
-) {
+    selectedAction: Action,
+    content: @Composable () -> Unit,
+
+    ) {
     BottomDrawer(
         modifier = modifier,
         drawerState = controller.drawer,
         drawerBackgroundColor = Theme[mainDrawerSurfaceColorKey],
         gesturesEnabled = controller.isDrawerVisible,
         drawerContent = {
-            MainNavigationMenu(
-                navigationMenu = controller.menu,
+            SelectableSectionList(
+                colors = drawerColors(),
+                sections = controller.menu + Managers.Screen.screens.map { (plugin, screen) ->
+                    GroupAction(
+                        name = plugin.attributes.name,
+                        icon = null,
+                        actions = listBuilder {
+                            screen.icon?.let { item(title = screen.route, icon = it) }
+                        }
+                    )
+                },
                 onActionClick = { action ->
                     controller.notifyActionListeners(action)
                 },
-                currentSelected = currentScreenSelected
+                selectedActions = listOf(selectedAction)
             )
         },
         content = content,

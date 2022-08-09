@@ -8,45 +8,47 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
-import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetValue
-import androidx.compose.material.SnackbarResult
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Sort
-import androidx.compose.material.rememberModalBottomSheetState
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.SystemUiController
 import io.github.excu101.filesystem.fs.utils.asPath
 import io.github.excu101.pluginsystem.model.Action
+import io.github.excu101.pluginsystem.model.GroupAction
 import io.github.excu101.ui.component.layout.ErrorMessage
 import io.github.excu101.ui.component.layout.ProgressBarView
+import io.github.excu101.ui.component.layout.SelectableSectionList
+import io.github.excu101.ui.component.text.Subtitle
 import io.github.excu101.vortexfilemanager.base.utils.collectAsEffect
 import io.github.excu101.vortexfilemanager.base.utils.collectAsState
-import io.github.excu101.vortexfilemanager.data.fileModelSetOf
-import io.github.excu101.vortexfilemanager.data.intent.Contracts.SideEffect.*
+import io.github.excu101.vortexfilemanager.data.intent.SideEffect.Empty
+import io.github.excu101.vortexfilemanager.data.intent.SideEffect.Message
+import io.github.excu101.vortexfilemanager.data.intent.StorageDialogState.*
 import io.github.excu101.vortexfilemanager.provider.ScopedStorageContract
 import io.github.excu101.vortexfilemanager.ui.MainScreenController
-import io.github.excu101.vortexfilemanager.ui.screen.list.view.PermWarning
-import io.github.excu101.vortexfilemanager.ui.screen.list.view.SpecialPermWarning
-import io.github.excu101.vortexfilemanager.ui.screen.list.view.StorageList
-import io.github.excu101.vortexfilemanager.ui.screen.list.view.StorageScaffold
-import io.github.excu101.vortexfilemanager.ui.theme.Theme
-import io.github.excu101.vortexfilemanager.ui.theme.key.layoutProgressActionTintColorKey
-import io.github.excu101.vortexfilemanager.ui.theme.key.layoutProgressBarBackgroundColorKey
-import io.github.excu101.vortexfilemanager.ui.theme.key.layoutProgressBarTintColorKey
-import io.github.excu101.vortexfilemanager.ui.theme.key.layoutProgressTitleTextColorKey
+import io.github.excu101.vortexfilemanager.ui.screen.list.view.*
+import io.github.excu101.vortexfilemanager.ui.util.toggle
+import io.github.excu101.vortexfilemanager.ui.view.action.Defaults
 import io.github.excu101.vortexfilemanager.ui.view.action.MenuAction
+import io.github.excu101.vortexfilemanager.ui.view.action.Ordering
+import io.github.excu101.vortexfilemanager.ui.view.action.asGroup
 import io.github.excu101.vortexfilemanager.ui.view.icon.MenuIconState
 import io.github.excu101.vortexfilemanager.ui.view.trail.TrailRow
+import io.github.excu101.vortexfilemanager.util.drawerColors
+import io.github.excu101.vortexfilemanager.util.item
+import io.github.excu101.vortexfilemanager.util.listBuilder
+import io.github.excu101.vortexfilemanager.util.progressBarColors
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -66,7 +68,7 @@ fun StorageScreen(
                 if (!granted) {
                     viewModel.launch()
                 } else {
-                    viewModel.navigateTo(viewModel.currentPath.value)
+                    viewModel.navigateTo()
                 }
             }
         }
@@ -78,69 +80,94 @@ fun StorageScreen(
             if (!result) {
                 viewModel.launch()
             } else {
-                viewModel.navigateTo(viewModel.currentPath.value)
+                viewModel.navigateTo()
             }
         }
     )
 
     val effect by viewModel.collectAsEffect(initial = Empty)
     val state by viewModel.collectAsState()
-    val operation by viewModel.currentOperation.collectAsState()
-    val bottomState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
-    val selected = viewModel.selected
     val trail by viewModel.trail.collectAsState()
+    val dialog by viewModel.dialog.collectAsState()
+    val selected by viewModel.selected.collectAsState()
 
-    Crossfade(targetState = state) {
+    var isBarHide by remember { controller.bar.isHide }
+
+    val bottom = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+
+    var sections by remember {
+        mutableStateOf(listBuilder {
+            item(GroupAction(
+                name = "Main",
+                actions = listBuilder {
+                    item(title = "Add", icon = Icons.Outlined.Add)
+                    item(title = "Delete", icon = Icons.Outlined.Delete)
+                }
+            ))
+        })
+    }
+
+    ModalBottomSheetLayout(
+        sheetState = bottom,
+        sheetContent = {
+            SelectableSectionList(
+                colors = drawerColors(),
+                sections = sections,
+                onActionClick = { action ->
+                    controller.notifyActionListeners(action = action)
+                },
+                selectedActions = listOf()
+            )
+        },
+    ) {
         StorageScaffold(
-            targetState = state,
             trail = {
                 val segments = trail.segments
                 val selectedSegment = trail.selected
-                TrailRow(
-                    segments = segments,
-                    currentSelected = selectedSegment
-                ) { model ->
-                    viewModel.navigateTo(model)
+
+                Column {
+                    TrailRow(
+                        segments = segments,
+                        currentSelected = selectedSegment,
+                        onTrailClick = { viewModel.navigateTo(it) }
+                    )
+                    if (trail.currentSelected.isDirectory) {
+                        Subtitle(
+                            modifier = Modifier.padding(16.dp),
+                            text = trail.currentSelected.properties.count.toString()
+                        )
+                    }
                 }
             },
             additional = { },
-            dialog = { }
         ) {
-            val data by remember {
-                derivedStateOf { it.data }
+            val scroller = rememberLazyListState()
+            val isScrolling by remember {
+                derivedStateOf { scroller.isScrollInProgress }
             }
+            isBarHide = isScrolling
 
             StorageList(
-                data = data,
+                data = state.data,
                 selected = selected,
-                onIconClick = { model ->
-                    viewModel.choose(fileModelSetOf(model))
+                state = scroller,
+                onSelect = { model ->
+                    viewModel.choose(listOf(model))
                 },
                 onItemClick = { model ->
                     viewModel.navigateTo(model)
-                }
+                },
+                isLightModeEnabled = true
             )
 
-            if (it.isLoading) {
-                ProgressBarView(
-                    modifier = Modifier.fillMaxSize(),
-                    message = it.loadingMessage,
-                    textButton = "Cancel",
-                    messageColor = Theme[layoutProgressTitleTextColorKey],
-                    backgroundColor = Theme[layoutProgressBarBackgroundColorKey],
-                    buttonTextColor = Theme[layoutProgressActionTintColorKey],
-                    progressColor = Theme[layoutProgressBarTintColorKey]
-                )
-            }
-
-            if (it.error != null) {
+            if (state.error != null) {
                 ErrorMessage(
                     modifier = Modifier.fillMaxSize(),
-                    message = it.error.message.toString()
+                    message = state.error!!.message.toString()
                 )
             }
 
-            if (it.requiresPermission) {
+            if (state.requiresPermission) {
                 PermWarning(
                     modifier = Modifier.fillMaxSize(),
                     onActionClick = {
@@ -154,7 +181,7 @@ fun StorageScreen(
                 )
             }
 
-            if (it.requiresSpecialPermission) {
+            if (state.requiresSpecialPermission) {
                 SpecialPermWarning(
                     modifier = Modifier.fillMaxSize(),
                     onActionClick = {
@@ -162,7 +189,53 @@ fun StorageScreen(
                     }
                 )
             }
+
+            if (state.isLoading) {
+                ProgressBarView(
+                    modifier = Modifier.fillMaxSize(),
+                    message = state.loadingMessage,
+                    textButton = "Cancel",
+                    colors = progressBarColors()
+                )
+            }
+
         }
+    }
+
+    when (val it = dialog) {
+        StorageCreateDialog -> {
+            FileCreateDialog(
+                onDismissRequest = {
+                    viewModel.hideDialog()
+                },
+                onCancelRequest = {
+                    viewModel.hideDialog()
+                },
+                onConfirmRequest = { isDirectory, path ->
+                    if (isDirectory) {
+                        viewModel.createDirectory(path)
+                    } else {
+                        viewModel.createFile(path)
+                    }
+                }
+            )
+        }
+
+        is StorageWarningDialog -> {
+            FileListWarningDialog(
+                message = it.message,
+                onDismissRequest = {
+                    viewModel.hideDialog()
+                },
+                onCancelRequest = {
+                    viewModel.hideDialog()
+                },
+                onConfirmRequest = {
+
+                }
+            )
+        }
+        StorageEmptyDialog -> {}
     }
 
     LaunchedEffect(
@@ -200,23 +273,7 @@ fun StorageScreen(
 
         }
 
-        is Empty -> {
-
-        }
-
-        is DialogEmpty -> {
-
-        }
-
-        is DialogWarning -> {
-
-        }
-
-        is DialogCreate -> {
-
-        }
-
-        is ModelInfo -> {
+        Empty -> {
 
         }
     }
@@ -224,15 +281,30 @@ fun StorageScreen(
     LaunchedEffect(
         key1 = Unit,
         block = {
-            controller.bar.actions.value += Action(
-                title = "Sort file list",
-                icon = Icons.Outlined.Sort
-            )
-
-            controller.bar.actions.value += Action(
-                title = "More options",
-                icon = Icons.Outlined.MoreVert
-            )
+            if (!controller.bar.actions.value.contains(
+                    Action(
+                        title = "Sort",
+                        icon = Icons.Outlined.Sort
+                    )
+                )
+            ) {
+                controller.bar.actions.value += Action(
+                    title = "Sort",
+                    icon = Icons.Outlined.Sort
+                )
+            }
+            if (!controller.bar.actions.value.contains(
+                    Action(
+                        title = "More options",
+                        icon = Icons.Outlined.MoreVert
+                    )
+                )
+            ) {
+                controller.bar.actions.value += Action(
+                    title = "More options",
+                    icon = Icons.Outlined.MoreVert
+                )
+            }
         }
     )
 
@@ -242,28 +314,36 @@ fun StorageScreen(
         effect = {
             controller.subscribeOnAction(index = 1) {
                 when (it.title) {
-                    "Back to parent" -> {
-                        viewModel.navigateToParent()
-                    }
+                    "Back to parent" -> viewModel.navigateToParent()
 
-                    "Select all" -> {
-                        viewModel.selectAll()
+                    "Select all" -> viewModel.selectAll()
+
+                    "Open folder" -> {
+                        viewModel.openFolder()
+                        scope.launch { bottom.hide() }
                     }
 
                     "Deselect all" -> {
                         viewModel.deselectAll()
                     }
 
-                    "Add some content" -> {
-                        viewModel.showDialog(DialogCreate)
+                    "Add" -> {
+                        viewModel.createDialog()
+                    }
+
+                    "Sort" -> {
+                        sections = Ordering.asGroup()
+                        bottom.toggle(scope = scope)
                     }
 
                     "Add new file" -> {
-                        viewModel.showDialog(DialogCreate)
+                        viewModel.createDialog()
+                        scope.launch { bottom.hide() }
                     }
 
                     "More options" -> {
-                        scope.launch { bottomState.show() }
+                        sections = Defaults(selected = selected.toTypedArray()).asGroup()
+                        bottom.toggle(scope = scope)
                     }
 
                     "Delete" -> {

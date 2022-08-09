@@ -3,6 +3,7 @@ package io.github.excu101.filesystem.unix
 import io.github.excu101.filesystem.fs.DirectoryStream
 import io.github.excu101.filesystem.fs.FileSystemProvider
 import io.github.excu101.filesystem.fs.attr.BasicAttrs
+import io.github.excu101.filesystem.fs.attr.EmptyAttrs
 import io.github.excu101.filesystem.fs.attr.Option
 import io.github.excu101.filesystem.fs.attr.StandardOptions
 import io.github.excu101.filesystem.fs.channel.Channel
@@ -19,13 +20,12 @@ class UnixFileSystemProvider : FileSystemProvider() {
     @Suppress(names = ["UNCHECKED_CAST"])
     override fun <T : BasicAttrs> readAttrs(source: Path, type: KClass<T>): T {
         return when (type) {
-            BasicAttrs::class -> {
-                UnixAttributes.from(path = source as UnixPath, true) as T
-            }
+            BasicAttrs::class -> UnixAttributes.from(path = source as UnixPath, true) as T
 
-            UnixAttributes::class -> {
-                UnixAttributes.from(path = source as UnixPath, true) as T
-            }
+            EmptyAttrs::class -> EmptyAttrs as T
+
+            UnixAttributes::class -> UnixAttributes.from(path = source as UnixPath, true) as T
+
             else -> throw UnsupportedOperationException()
         }
     }
@@ -41,7 +41,7 @@ class UnixFileSystemProvider : FileSystemProvider() {
         }
 
         return open(
-            descriptor = UnixCalls.open(path.bytes, flags = cFlags, mode = mode),
+            descriptor = UnixCalls.open(path = path.bytes, flags = cFlags, mode = mode),
             path = path.toString(),
             readable = readable,
             writable = writable
@@ -69,7 +69,12 @@ class UnixFileSystemProvider : FileSystemProvider() {
 
     override fun newDirectorySteam(path: Path): DirectoryStream<Path> {
         try {
-            return UnixDirectoryStream(dir = path as UnixPath, UnixCalls.openDir(path.bytes))
+            return UnixDirectoryStream(
+                dir = path as UnixPath, UnixCalls.openDir(path.bytes),
+                onError = { error ->
+                    notify(error = error)
+                }
+            )
         } catch (exception: SystemCallException) {
             throw exception
         }
