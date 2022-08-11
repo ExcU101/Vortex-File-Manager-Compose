@@ -32,77 +32,81 @@ fun SelectableSectionList(
     sections: Collection<GroupAction>,
     onActionClick: (Action) -> Unit,
     selectedActions: List<Action>,
+    onEmpty: @Composable () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier,
         content = {
-            sections.forEach { (title, icon, actions) ->
-                item {
-                    if (title.isEmpty()) {
-                        Divider()
-                    } else {
-                        Column {
+            if (sections.isEmpty()) {
+                item { onEmpty() }
+            } else
+                sections.forEach { (title, icon, actions) ->
+                    item {
+                        if (title.isEmpty()) {
                             Divider()
-                            Row(modifier = Modifier.padding(16.dp)) {
-                                if (icon != null && icon != Unspecified) {
+                        } else {
+                            Column {
+                                Divider()
+                                Row(modifier = Modifier.padding(16.dp)) {
+                                    if (icon != null && icon != Unspecified) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = title
+                                        )
+                                        RowSpacer(size = 32.dp)
+                                    }
+                                    Subtitle(
+                                        text = title,
+                                        style = SubtitleTextStyle.copy(
+                                            colors.title().value
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    items(actions.toList()) { item ->
+                        val isSelected = selectedActions.contains(item)
+
+                        Surface(
+                            modifier = Modifier.padding(
+                                vertical = 4.dp,
+                                horizontal = 8.dp
+                            ),
+                            color = colors.itemBackground(isSelected = isSelected).value,
+                            shape = RoundedCornerShape(8.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .clickable(onClick = { onActionClick(item) })
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.Start,
+                                verticalAlignment = CenterVertically
+                            ) {
+                                if (item.icon.isNotUnspecified()) {
                                     Icon(
-                                        imageVector = icon,
-                                        contentDescription = title
+                                        imageVector = item.icon,
+                                        contentDescription = item.title,
+                                        tint = colors.itemIcon(isSelected = isSelected).value
                                     )
                                     RowSpacer(size = 32.dp)
                                 }
-                                Subtitle(
-                                    text = title,
-                                    style = SubtitleTextStyle.copy(
-                                        colors.title().value
+
+                                Text(
+                                    text = item.title,
+                                    style = TextStyle(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.itemTitle(isSelected = isSelected).value
                                     )
                                 )
                             }
                         }
                     }
                 }
-
-                items(actions.toList()) { item ->
-                    val isSelected = selectedActions.contains(item)
-
-                    Surface(
-                        modifier = Modifier.padding(
-                            vertical = 4.dp,
-                            horizontal = 8.dp
-                        ),
-                        color = colors.itemBackground(isSelected = isSelected).value,
-                        shape = RoundedCornerShape(8.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .clickable(onClick = { onActionClick(item) })
-                                .padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.Start,
-                            verticalAlignment = CenterVertically
-                        ) {
-                            if (item.icon.isNotUnspecified()) {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.title,
-                                    tint = colors.itemIcon(isSelected = isSelected).value
-                                )
-                                RowSpacer(size = 32.dp)
-                            }
-
-                            Text(
-                                text = item.title,
-                                style = TextStyle(
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.itemTitle(isSelected = isSelected).value
-                                )
-                            )
-                        }
-                    }
-                }
-            }
         }
     )
 }
@@ -112,6 +116,9 @@ object SectionListDefaults {
     interface SectionListColors {
         @Composable
         fun title(): State<Color>
+
+        @Composable
+        fun background(): State<Color>
 
         @Composable
         fun itemBackground(isSelected: Boolean): State<Color>
@@ -125,16 +132,22 @@ object SectionListDefaults {
 
     internal class DefaultSectionListColors(
         private val title: Color,
+        private val background: Color,
         private val itemBackground: Color,
         private val itemBackgroundSelected: Color,
         private val itemTitle: Color,
         private val itemTitleSelected: Color,
         private val itemIcon: Color,
-        private val itemIconSelected: Color
+        private val itemIconSelected: Color,
     ) : SectionListColors {
         @Composable
         override fun title(): State<Color> {
             return rememberUpdatedState(newValue = title)
+        }
+
+        @Composable
+        override fun background(): State<Color> {
+            return rememberUpdatedState(newValue = background)
         }
 
         @Composable
@@ -157,15 +170,17 @@ object SectionListDefaults {
     @Composable
     fun colors(
         title: Color = MaterialTheme.colors.primary,
+        background: Color = MaterialTheme.colors.background,
         itemBackground: Color = MaterialTheme.colors.surface,
         itemBackgroundSelected: Color = MaterialTheme.colors.onSurface,
         itemTitle: Color = MaterialTheme.colors.primary,
         itemTitleSelected: Color = MaterialTheme.colors.secondary,
         itemIcon: Color = MaterialTheme.colors.primary,
-        itemIconSelected: Color = MaterialTheme.colors.secondary
+        itemIconSelected: Color = MaterialTheme.colors.secondary,
     ): SectionListColors {
         return DefaultSectionListColors(
             title = title,
+            background = background,
             itemBackground = itemBackground,
             itemBackgroundSelected = itemBackgroundSelected,
             itemTitle = itemTitle,

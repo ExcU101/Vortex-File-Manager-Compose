@@ -12,14 +12,16 @@ import io.github.excu101.vortexfilemanager.ui.theme.key.*
 @Composable
 fun drawerColors(
     title: Color = Theme[mainDrawerTitleColorKey],
+    background: Color = Theme[mainDrawerBackgroundColorKey],
     itemBackground: Color = Theme[mainDrawerSurfaceColorKey],
     itemBackgroundSelected: Color = Theme[mainDrawerItemSelectedBackgroundColorKey],
     itemTitle: Color = Theme[mainDrawerActionTitleTextColorKey],
     itemTitleSelected: Color = Theme[mainDrawerActionTitleSelectedTextColorKey],
     itemIcon: Color = Theme[mainDrawerActionIconTintColorKey],
-    itemIconSelected: Color = Theme[mainDrawerActionIconSelectedTintColorKey]
+    itemIconSelected: Color = Theme[mainDrawerActionIconSelectedTintColorKey],
 ): SectionListColors = colors(
     title,
+    background,
     itemBackground,
     itemBackgroundSelected,
     itemTitle,
@@ -33,7 +35,7 @@ fun progressBarColors(
     messageColor: Color = Theme[layoutProgressTitleTextColorKey],
     backgroundColor: Color = Theme[layoutProgressBarBackgroundColorKey],
     buttonTextColor: Color = Theme[layoutProgressActionTintColorKey],
-    progressColor: Color = Theme[layoutProgressBarTintColorKey]
+    progressColor: Color = Theme[layoutProgressBarTintColorKey],
 ): ProgressBarColors = colors(
     backgroundColor = backgroundColor,
     buttonTextColor = buttonTextColor,

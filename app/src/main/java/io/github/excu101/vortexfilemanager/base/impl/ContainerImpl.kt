@@ -37,8 +37,8 @@ class ContainerImpl<S, E>(
         effect = { effect ->
             emitEffect(effect)
         },
-        message = {
-            logger.log(it)
+        message = { message ->
+            logger.log(message)
         }
     )
 

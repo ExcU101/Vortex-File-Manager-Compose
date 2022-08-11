@@ -2,6 +2,7 @@ package io.github.excu101.vortexfilemanager.data
 
 import android.os.Parcel
 import android.os.Parcelable
+import android.util.Log
 import androidx.compose.runtime.Immutable
 import io.github.excu101.filesystem.FileProvider
 import io.github.excu101.filesystem.fs.path.Path
@@ -35,7 +36,7 @@ class Trail(
 
     operator fun get(path: Path) = segments.contains(element = FileModel(path))
 
-    operator fun get(paths: Collection<Path>) = segments.containsAll(paths.map(::FileModel))
+    operator fun get(paths: Collection<FileModel>) = segments.containsAll(paths)
 
     operator fun get(index: Int) = segments[index]
 
@@ -55,6 +56,10 @@ class Trail(
     }
 
     fun navigateTo(path: Path) = navigateTo(newSegments = fromPathToModels(path = path))
+
+    fun navigateUp(): Trail? = segments[selected].parent?.let {
+        Trail(fromPathToModels(it.path))
+    }
 
     inline fun navigateTo(path: Path, block: (Path) -> Unit): Trail {
         val trail = navigateTo(newSegments = fromPathToModels(path = path))
@@ -110,6 +115,7 @@ fun fromPath(path: Path): MutableList<Path> {
         list.add(cPath)
         cPath = cPath.parent ?: break
     }
+
     return list.asReversed()
 }
 

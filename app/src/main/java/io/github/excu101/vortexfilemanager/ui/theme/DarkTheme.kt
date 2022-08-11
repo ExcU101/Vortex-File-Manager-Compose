@@ -19,7 +19,8 @@ fun defaultDarkTheme(): Theme {
     Theme[mainBarNavigationIconContextualTintColorKey] = Color.White
     Theme[mainBarTitleContextualTextColorKey] = Color.White
 
-    Theme[mainDrawerTitleColorKey] = Color(0xFF696969)
+    Theme[mainDrawerTitleColorKey] = Color.LightGray
+    Theme[mainDrawerBackgroundColorKey] = Color(color = 0xFF212121)
     Theme[mainDrawerSurfaceColorKey] = Color(color = 0xFF212121)
     Theme[mainDrawerActionIconTintColorKey] = Color.White
     Theme[mainDrawerActionTitleTextColorKey] = Color.White

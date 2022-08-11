@@ -8,16 +8,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.ListItem
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.excu101.ui.component.layout.AnimatedItem
-import io.github.excu101.ui.component.layout.AnimatedLazyColumn
-import io.github.excu101.ui.component.model.SelectableItem
 import io.github.excu101.ui.component.utils.recomposeHighlighter
 import io.github.excu101.vortexfilemanager.data.FileModel
-import io.github.excu101.vortexfilemanager.data.SelectableValue
 
 @Composable
 fun StorageList(
@@ -26,35 +22,40 @@ fun StorageList(
     paddings: PaddingValues = PaddingValues(0.dp),
     data: List<FileModel>,
     selected: Collection<FileModel>,
-    isLightModeEnabled: Boolean,
+    mode: StorageListViewMode,
     onSelect: (FileModel) -> Unit,
     onItemClick: (FileModel) -> Unit,
 ) {
     LazyColumn(
-        modifier = modifier.recomposeHighlighter(),
+        modifier = modifier,
         contentPadding = paddings,
         state = state,
     ) {
         items(
             items = data,
-            key = { it.id },
+            key = FileModel::id,
             contentType = { it }
         ) { model ->
+            val selectListener = remember(data) { { onSelect(model) } }
+            val itemListener = remember(data) { { onItemClick(model) } }
 
-            if (isLightModeEnabled) {
-                StorageLightItemView(
-                    model = model,
-                    isSelected = selected.contains(model),
-                    onItemClick = { onItemClick(model) },
-                    onSelect = { onSelect(model) }
-                )
-            } else {
-                StorageItem(
-                    model = model,
-                    isSelected = selected.contains(model),
-                    onItemClick = { onItemClick(model) },
-                    onSelect = { onSelect(model) }
-                )
+            when (mode) {
+                StorageListViewMode.LIGHT -> {
+                    StorageLightItemView(
+                        model = model,
+                        isSelected = selected.contains(model),
+                        onItemClick = itemListener,
+                        onSelect = selectListener
+                    )
+                }
+                StorageListViewMode.NORMAL -> {
+                    StorageItem(
+                        model = model,
+                        isSelected = selected.contains(model),
+                        onItemClick = itemListener,
+                        onSelect = selectListener
+                    )
+                }
             }
         }
     }

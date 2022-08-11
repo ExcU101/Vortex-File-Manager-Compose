@@ -21,10 +21,12 @@ import io.github.excu101.ui.component.text.TitleText
 fun FileCreateDialog(
     onDismissRequest: () -> Unit,
     onCancelRequest: () -> Unit,
-    onConfirmRequest: (isDirectory: Boolean, path: Path) -> Unit
+    onConfirmRequest: (Boolean, String) -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var isDirectory by remember { mutableStateOf(false) }
+    var name by remember { mutableStateOf(value = "") }
+    var isDirectory by remember { mutableStateOf(value = false) }
+    val confirm = remember { { onConfirmRequest(isDirectory, name) } }
+    val change: (String) -> Unit = remember { { name = it } }
 
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
@@ -41,9 +43,7 @@ fun FileCreateDialog(
                 ColumnSpacer(size = 16.dp)
                 OutlinedTextField(
                     value = name,
-                    onValueChange = {
-                        name = it
-                    },
+                    onValueChange = change,
                     maxLines = 1,
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
@@ -91,12 +91,7 @@ fun FileCreateDialog(
                     }
                     RowSpacer(size = 8.dp)
                     TextButton(
-                        onClick = {
-                            onConfirmRequest.invoke(
-                                isDirectory,
-                                FileProvider.parsePath(name)
-                            )
-                        },
+                        onClick = confirm,
                         modifier = Modifier,
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.outlinedButtonColors(

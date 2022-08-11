@@ -9,12 +9,12 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.Before
+import org.junit.Test
 
 class ProviderTest {
 
-    @BeforeEach
+    @Before
     fun installFileSystem() {
         FileProvider.install(system = UnixFileSystem(provider = UnixFileSystemProvider()))
     }
@@ -24,7 +24,7 @@ class ProviderTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    suspend fun provideData() = runTest {
+    fun provideData() = runTest {
         val path = mockk<Path>()
         every { path } returns testPath
         coEvery { provider.provide(path) } returns listOfPath(10) {

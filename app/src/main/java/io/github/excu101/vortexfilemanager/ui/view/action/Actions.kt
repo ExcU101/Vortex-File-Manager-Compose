@@ -45,6 +45,9 @@ val PluginsAction = Action(title = "Plugin manager", icon = Icons.Outlined.AddCi
 val SettingsAction = Action(title = "Settings", icon = Icons.Outlined.Settings)
 val BookmarkAction = Action(title = "Bookmarks", icon = Icons.Outlined.Bookmarks)
 val MenuAction = Action(title = "Menu", icon = Icons.Outlined.Menu)
+val SortAction = Action(title = "Sort", icon = Icons.Outlined.Sort)
+val SearchAction = Action(title = "Search", icon = Icons.Outlined.Search)
+val MoreAction = Action(title = "More", icon = Icons.Outlined.MoreVert)
 
 val CreateFileAction = Action(title = "Add new file", icon = Icons.Outlined.Add)
 
@@ -133,7 +136,7 @@ fun Defaults(vararg selected: FileModel) = menu {
 @Composable
 fun ActionItem(
     action: Action,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier

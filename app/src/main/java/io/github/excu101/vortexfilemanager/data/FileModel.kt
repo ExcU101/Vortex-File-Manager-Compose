@@ -24,6 +24,9 @@ data class FileModel(
 
     val id: Int = IdRegister.register(IdRegister.Type.PATH)
 
+    val separator: String
+        get() = path.system.separator.toInt().toChar().toString()
+
     val attrs: UnixAttributes
         get() = FileProvider.readAttrs(path)
 

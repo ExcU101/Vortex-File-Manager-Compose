@@ -6,14 +6,29 @@ import io.github.excu101.filesystem.fs.path.Path
 import io.github.excu101.filesystem.unix.path.UnixPath
 
 class UnixFileSystem(
-    override val provider: FileSystemProvider
+    override val provider: FileSystemProvider,
 ) : FileSystem(provider = provider) {
 
     override val separator: Byte
         get() = '/'.code.toByte()
 
-    private val defaultDirectory = UnixPath(
-        fs = this,
+    val rootDirectory = UnixPath(
+        _system = this,
+        path = byteArrayOf(separator)
+    )
+
+    init {
+        if (!rootDirectory.isAbsolute) {
+            throw AssertionError("Root directory must be absolute")
+        }
+        if (rootDirectory.nameCount != 0) {
+            throw AssertionError("Root directory must contain no names")
+        }
+    }
+
+
+    internal val defaultDirectory = UnixPath(
+        _system = this,
         path = if (!System.getenv("user.dir").isNullOrEmpty()) {
             System.getenv("user.dir")!!.toByteArray()
         } else {
@@ -34,7 +49,7 @@ class UnixFileSystem(
 
     override fun getPath(first: String, vararg other: String): Path {
         return UnixPath(
-            fs = this,
+            _system = this,
             path = StringBuilder(first).apply {
                 other.forEach {
                     append(separator.toInt().toChar().toString())

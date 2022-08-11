@@ -3,7 +3,7 @@ package io.github.excu101.filesystem.unix.error
 class UnixException(
     private val errno: Int,
     val name: String,
-) : Throwable() {
+) : Throwable("$errno: $name") {
 
     val error: Error?
         get() = Error.values().find { it.value == errno }

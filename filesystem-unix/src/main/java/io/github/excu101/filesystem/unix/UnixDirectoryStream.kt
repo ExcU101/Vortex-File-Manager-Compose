@@ -97,8 +97,8 @@ class UnixDirectoryStream internal constructor(
                 val path = dir.resolve(
                     other =
                     UnixPath(
-                        fs = dir.fileSystem as UnixFileSystem,
-                        dirent.name
+                        _system = dir.system as UnixFileSystem,
+                        path = dirent.name
                     )
                 ) as UnixPath
                 val accepted = try {

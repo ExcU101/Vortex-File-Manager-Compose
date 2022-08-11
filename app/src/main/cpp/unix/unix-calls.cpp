@@ -104,7 +104,25 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_stat(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_io_github_excu101_filesystem_unix_UnixCalls_delete(
+Java_io_github_excu101_filesystem_unix_UnixCalls_removeDirectory(
+        JNIEnv *env,
+        jobject thiz,
+        jbyteArray path
+) {
+    clearErrno();
+
+    char *cPath = fromByteArrayToPath(env, path);
+    rmdir(cPath);
+    free(cPath);
+
+    if (errno != 0) {
+
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_io_github_excu101_filesystem_unix_UnixCalls_unlink(
         JNIEnv *env,
         jobject thiz,
         jbyteArray path
@@ -112,8 +130,11 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_delete(
     clearErrno();
     char *cPath = fromByteArrayToPath(env, path);
     unlink(cPath);
-
     free(cPath);
+
+    if (errno != 0) {
+        UNIX_ERROR(env, errno, "unlink")
+    }
 }
 
 extern "C"
@@ -134,8 +155,6 @@ jlong openDirectory(
 ) {
     clearErrno();
     DIR *pointer = opendir(path);
-//    LOGV("%s", path)
-//    LOGV("%ld", (jlong) pointer)
     free(path);
 
     return (jlong) pointer;
@@ -208,15 +227,11 @@ Java_io_github_excu101_filesystem_unix_UnixCalls_readDir(
 
     DIR *dir = (DIR *) pointer;
 
-    LOGV("%ld", pointer)
-
     struct dirent64 *directory = readdir64(dir);
 
     if (!directory) {
         return nullptr;
     }
-
-    perror("");
 
     return newLinuxDirentStruct(env, directory);
 }

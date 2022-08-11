@@ -110,6 +110,7 @@ dependencies {
     implementation(Deps.Coroutines.Android)
 
     implementation(Deps.Lifecycle.Runtime)
+    implementation(Deps.Lifecycle.RuntimeCompose)
     implementation(Deps.Lifecycle.LiveData)
     implementation(Deps.Lifecycle.ViewModel)
     implementation(Deps.Lifecycle.ViewModelCompose)

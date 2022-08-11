@@ -22,7 +22,7 @@ abstract class FileChannel protected constructor() : AbstractChannel() {
 
     companion object {
         fun open(path: Path) {
-            path.fileSystem.provider
+            path.system.provider
         }
     }
 

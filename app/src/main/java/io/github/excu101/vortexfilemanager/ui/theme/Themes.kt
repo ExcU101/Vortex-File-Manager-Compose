@@ -5,6 +5,8 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -27,13 +29,13 @@ object Theme {
         isDark = true
     }
 
-    private val icons: HashMap<String, ImageVector> = hashMapOf()
+    private val icons: SnapshotStateMap<String, ImageVector> = mutableStateMapOf()
 
-    private val text: HashMap<String, String> = hashMapOf()
+    private val text: SnapshotStateMap<String, String> = mutableStateMapOf()
 
-    private val colors: HashMap<String, Color> = hashMapOf()
+    private val colors: SnapshotStateMap<String, Color> = mutableStateMapOf()
 
-    private val dimens: HashMap<String, Dp> = hashMapOf()
+    private val dimens: SnapshotStateMap<String, Dp> = mutableStateMapOf()
 
     var isDark: Boolean = false
         set(value) {
@@ -114,13 +116,13 @@ inline fun themedColorAnimation(
 @Composable
 fun themedColorAnimation(
     key: String,
-    animationSpec: AnimationSpec<Color> = tween(durationMillis = 300)
+    animationSpec: AnimationSpec<Color> = tween(durationMillis = 300),
 ) = fastChangeColorAnim(Theme[key], animationSpec)
 
 @Composable
 fun fastChangeColorAnim(
     targetValue: Color,
-    animationSpec: AnimationSpec<Color> = tween(durationMillis = 300)
+    animationSpec: AnimationSpec<Color> = tween(durationMillis = 300),
 ) = animateColorAsState(
     targetValue = targetValue,
     animationSpec = animationSpec

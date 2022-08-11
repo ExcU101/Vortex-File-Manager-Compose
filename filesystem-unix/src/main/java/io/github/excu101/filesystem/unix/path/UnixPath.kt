@@ -1,225 +1,156 @@
 package io.github.excu101.filesystem.unix.path
 
-import android.os.Parcel
-import android.os.Parcelable
-import android.util.Log
-import io.github.excu101.filesystem.FileProvider
 import io.github.excu101.filesystem.fs.FileSystem
 import io.github.excu101.filesystem.fs.path.Path
 import io.github.excu101.filesystem.unix.UnixFileSystem
-import kotlinx.parcelize.Parceler
-import kotlinx.parcelize.Parcelize
-import kotlin.math.min
 
-@Parcelize
-class UnixPath(
-    private val fs: UnixFileSystem,
-    private val path: ByteArray
-) : Path, Parcelable {
+class UnixPath internal constructor(
+    private val path: ByteArray,
+    private val _system: UnixFileSystem,
+) : Path {
 
-    companion object : Parceler<UnixPath> {
-        override fun create(parcel: Parcel): UnixPath {
-            return parcel.readString()?.let { FileProvider.parsePath(it) } as UnixPath
-        }
-
-        override fun UnixPath.write(parcel: Parcel, flags: Int) {
-            parcel.writeString(path.decodeToString())
-        }
-    }
-
-    private val separatorPoints: List<Int>
+    private val points: List<Int>
 
     init {
-        var index = 0
         val list = mutableListOf<Int>()
-        while (index < path.size) {
-            if (path[index] == fs.separator) {
-                list.add(index)
-                index++
-            } else {
-                while (index < path.size && path[index] != fs.separator) {
-                    index++
+
+        if (!isEmpty) {
+            if (path.size > 1) {
+                path.forEachIndexed { index, byte ->
+                    if (byte == system.separator) {
+                        list.add(index)
+                    }
                 }
             }
         }
-        separatorPoints = list
+
+        points = list
     }
 
-    override val bytes: ByteArray
-        get() = path
-
-    override val fileSystem: FileSystem
-        get() = fs
-
-    override val nameCount: Int
-        get() = separatorPoints.size - 1
-
-    override val root: Path
-        get() = UnixPath(fs, path = byteArrayOf(fs.separator))
-
-    override val length: Int
-        get() = path.size
+    override val root: Path?
+        get() = if (isAbsolute) {
+            _system.rootDirectory
+        } else {
+            null
+        }
 
     override val parent: Path?
         get() = when (nameCount) {
             0 -> null
             1 -> root
-            else -> root.resolve(
-                other = sub(index = separatorPoints[nameCount])
-            )
+            else -> root!!.resolve(sub(0, points[nameCount - 1]))
         }
+
+    override val length: Int
+        get() = path.size
 
     override val isEmpty: Boolean
         get() = path.isEmpty()
 
     override val isHidden: Boolean
-        get() = fs.provider.isHidden(source = this)
+        get() = _system.provider.isHidden(source = this)
+
+    override val nameCount: Int
+        get() = points.size
 
     override val isAbsolute: Boolean
-        get() = !isEmpty && path[0] == fs.separator
+        get() = !isEmpty && path[0] == system.separator
+
+    override val bytes: ByteArray
+        get() = path
+
+    override val system: FileSystem
+        get() = _system
 
     override fun startsWith(other: Path): Boolean {
-        if (other.length > length) return false
-
-        val otherNameCount = other.nameCount
-        if (otherNameCount == 0 && isAbsolute) return !other.isEmpty
-
-        if (otherNameCount > nameCount) return false
-
-        if (otherNameCount == nameCount && length != other.length) return false
-
-        for (index in 0..other.length) {
-            if (bytes[index] != other.bytes[index]) {
-                return false
-            }
-        }
+        if (other.isEmpty) return false
+        if (isEmpty) return false
 
         return true
     }
 
     override fun endsWith(other: Path): Boolean {
+        if (other.isEmpty) return false
+        if (isEmpty) return false
+
         return true
-    }
-
-    override fun normalize(): Path {
-        val normalizedSegments = mutableListOf<Byte>()
-        for (byte in bytes) {
-            if (byte == '.'.code.toByte()) {
-//
-            } else if (byte == "..".toByte()) {
-                if (normalizedSegments.isEmpty()) {
-                    if (!isAbsolute) {
-                        normalizedSegments += byte
-                    }
-                } else {
-                    if (normalizedSegments.last() == "..".toByte()) {
-                        normalizedSegments += byte
-                    } else {
-                        normalizedSegments.removeLast()
-                    }
-                }
-            } else {
-                normalizedSegments += byte
-            }
-        }
-        if (!isAbsolute && normalizedSegments.isEmpty()) {
-            return UnixPath(fs = fs, path = byteArrayOf(0))
-        }
-
-        return UnixPath(fs = fs, path = normalizedSegments.toByteArray())
     }
 
     private fun resolve(base: ByteArray, child: ByteArray): ByteArray {
         val baseLength = base.size
         val childLength = child.size
+        if (childLength == 0) return base
         val result: ByteArray
-        if (baseLength == 1 && base[0] == fs.separator) {
-            result = ByteArray(size = childLength + 1)
-            result[0] = fs.separator
+        if (baseLength == 1 && base[0] == system.separator) {
+            result = ByteArray(childLength + 1)
+            result[0] = system.separator
             System.arraycopy(child, 0, result, 1, childLength)
         } else {
-            result = ByteArray(size = baseLength + 1 + childLength)
+            result = ByteArray(baseLength + 1 + childLength)
             System.arraycopy(base, 0, result, 0, baseLength)
-            result[base.size] = fs.separator
+            result[base.size] = system.separator
             System.arraycopy(child, 0, result, baseLength + 1, childLength)
         }
-
         return result
     }
 
+
     override fun resolve(other: Path): Path {
-        if (other.isEmpty) return this
+        if (isEmpty) return other
 
         if (other.isAbsolute) return other
 
-        if (isEmpty) return other
+        if (other.isEmpty) return this
 
         return UnixPath(
-            fs = fs,
-            path = resolve(bytes, other.bytes)
+            path = resolve(bytes, other.bytes),
+            _system = _system
         )
     }
 
+    override fun normalize(): Path {
+        TODO("Not yet implemented")
+    }
+
     override fun relativize(other: Path): Path {
-        if (other == this) return UnixPath(fs = fs, path = byteArrayOf(0))
-        require(value = isAbsolute == other.isAbsolute) {
-            "FUCK"
-        }
+        TODO("Not yet implemented")
+    }
 
-        if (isEmpty) return other
-
-        val size = length
-        val otherSize = other.length
-        val minimal = min(size, otherSize)
-        var common = 0
-        while (common < minimal && bytes[common] == other.bytes[common]) {
-            ++common
+    override fun sub(from: Int, to: Int): Path {
+        if (from == 0 && to == length) {
+            return this
         }
-        val relatives = mutableListOf<Byte>()
-        val dotCount = size - common
-
-        if (dotCount > 0) {
-            repeat(dotCount) { relatives += "..".toByte() }
-        }
-        if (common < otherSize) {
-            relatives.addAll(other.bytes.copyOfRange(common, otherSize).toTypedArray())
-        }
-
-        return UnixPath(fs = fs, path = relatives.toByteArray())
+        return UnixPath(path = path.copyOfRange(from, to), _system = _system)
     }
 
     override fun getName(index: Int): Path {
-        if (nameCount == 0 || index < 0) return this
-        val begin = separatorPoints[index] + 1
-        val end = separatorPoints.getOrNull(index = index + 1) ?: length
+        if (nameCount == 0) return UnixPath(
+            path = byteArrayOf(system.separator),
+            _system = _system
+        )
+
+        val begin = points[index] + 1
+        val end = points.getOrElse(index = index + 1, defaultValue = { length })
 
         return sub(from = begin, to = end)
     }
-
-    private fun sub(index: Int): Path = sub(0, index)
-
-    override fun sub(from: Int, to: Int): Path = UnixPath(
-        fs = fs,
-        path = path.copyOfRange(from, to)
-    )
 
     override fun toString(): String {
         return path.decodeToString()
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other == null) return false
-        if (other !is UnixPath) return false
+        if (other === this) return false
 
-        return compareTo(other) == 0
+        if (javaClass != other?.javaClass) {
+            return false
+        }
+        other as Path
+        return other.bytes.contentEquals(bytes)
     }
-
 
     override fun compareTo(other: Path): Int {
-        return (path.size - other.bytes.size)
+        return other.length - length
     }
 
-    override fun hashCode(): Int {
-        return path.contentHashCode()
-    }
 }

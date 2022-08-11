@@ -2,6 +2,8 @@ package io.github.excu101.vortexfilemanager.ui.screen.list
 
 import android.os.Build
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,18 +12,16 @@ import io.github.excu101.filesystem.FileProvider
 import io.github.excu101.filesystem.fs.attr.StandardOptions
 import io.github.excu101.filesystem.fs.path.Path
 import io.github.excu101.filesystem.fs.utils.FileOperationObserver
+import io.github.excu101.filesystem.fs.utils.parsePath
 import io.github.excu101.filesystem.unix.operation.UnixCreateDirectoryOperation
 import io.github.excu101.filesystem.unix.operation.UnixCreateFileOperation
 import io.github.excu101.filesystem.unix.operation.UnixDeleteOperation
 import io.github.excu101.vortexfilemanager.base.Container
 import io.github.excu101.vortexfilemanager.base.ContainerHandler
-import io.github.excu101.vortexfilemanager.base.utils.container
-import io.github.excu101.vortexfilemanager.base.utils.intent
-import io.github.excu101.vortexfilemanager.base.utils.reduce
-import io.github.excu101.vortexfilemanager.base.utils.side
+import io.github.excu101.vortexfilemanager.base.utils.*
 import io.github.excu101.vortexfilemanager.data.FileModel
 import io.github.excu101.vortexfilemanager.data.FileModel.Companion.SDModel
-import io.github.excu101.vortexfilemanager.data.FileModelSet
+import io.github.excu101.vortexfilemanager.data.MutableFileModelSet
 import io.github.excu101.vortexfilemanager.data.Trail
 import io.github.excu101.vortexfilemanager.data.fromPathToModels
 import io.github.excu101.vortexfilemanager.data.intent.SideEffect
@@ -34,7 +34,9 @@ import io.github.excu101.vortexfilemanager.provider.DataStoreOwner
 import io.github.excu101.vortexfilemanager.provider.ErrorHandler
 import io.github.excu101.vortexfilemanager.provider.FileModelSorter
 import io.github.excu101.vortexfilemanager.provider.FileModelSorter.*
+import io.github.excu101.vortexfilemanager.ui.screen.list.view.StorageListViewMode
 import io.github.excu101.vortexfilemanager.util.applier
+import io.github.excu101.vortexfilemanager.util.emit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +46,6 @@ import javax.inject.Inject
 class StorageViewModel @Inject constructor(
     private val handle: SavedStateHandle,
     private val provider: AndroidFileProvider,
-    private val owner: DataStoreOwner,
 ) : ViewModel(), ContainerHandler<StorageState, SideEffect>, ErrorHandler {
 
     companion object Constants {
@@ -54,16 +55,15 @@ class StorageViewModel @Inject constructor(
     override val container: Container<StorageState, SideEffect> =
         container(StorageState(isLoading = false, loadingMessage = "Launching..."))
 
-    private val _data = mutableStateListOf<FileModel>()
-    val data: List<FileModel>
-        get() = _data
 
-    private val _selected = MutableStateFlow(FileModelSet())
-    val selected: StateFlow<FileModelSet>
-        get() = _selected.asStateFlow()
+    private val _selected = mutableStateListOf<FileModel>()
+    val selected: List<FileModel>
+        get() = _selected
 
     val isAllSelected: Boolean
-        get() = selected === data
+        get() = selected === state.data
+
+    var mode = mutableStateOf(StorageListViewMode.NORMAL)
 
     var sort = Sort.NAME
     var order = Order.A_Z
@@ -104,40 +104,28 @@ class StorageViewModel @Inject constructor(
         }
     }
 
-    infix fun choose(model: List<FileModel>) {
-        if (selected.value.containsAll(model)) deselect(model) else select(model)
+    fun navigateToParent() {
+        trail.value.currentSelected.parent?.let { navigateTo(it) }
     }
 
-    fun select(
-        files: List<FileModel>,
-    ) = intent {
-        _selected.applier { addAll(files) }
-    }
-
-    fun deselect(
-        files: List<FileModel>,
-    ) = intent {
-        _selected.applier {
-            removeAll(files.toSet())
+    fun select(models: List<FileModel>, isSelected: Boolean = _selected.containsAll(models)) {
+        if (isSelected) {
+            _selected.removeAll(models)
+        } else {
+            _selected.addAll(models)
         }
     }
 
-    fun deselectLast() = intent {
-        _selected.applier {
-            remove(last())
-        }
+    fun select(model: FileModel, isSelected: Boolean = _selected.contains(model)) {
+        select(listOf(model), isSelected)
     }
 
     fun selectAll() = intent {
-        select(state.data)
+        select(models = state.data, isSelected = false)
     }
 
     fun deselectAll() = intent {
-        _selected.emit(FileModelSet())
-    }
-
-    fun navigateToParent() {
-        trail.value.currentSelected.parent?.let { navigateTo(it) }
+        select(models = state.data, isSelected = true)
     }
 
     fun navigateTo(
@@ -169,30 +157,6 @@ class StorageViewModel @Inject constructor(
         }
     }
 
-    fun delete() = intent {
-        val data: List<FileModel> =
-            if (selected.value.isEmpty()) listOf(currentModel) else selected.value.toList()
-        var progress = 0
-        FileProvider.runOperation(
-            operation = UnixDeleteOperation(data = data.map(FileModel::path)),
-            observers = listOf(
-                FileOperationObserver(
-                    scope = viewModelScope,
-                    completion = {
-                        removePath(data)
-                    },
-                    error = { error ->
-                        onError(error = error)
-                    },
-                    action = {
-                        progress++
-                        side(SideEffect.Message(text = "Deleting... ($progress/${data.size})"))
-                    },
-                )
-            )
-        )
-    }
-
     fun createDialog() = intent {
         _dialog.emit(StorageCreateDialog)
     }
@@ -206,25 +170,20 @@ class StorageViewModel @Inject constructor(
     }
 
     fun openFolder() {
-        val model = selected.value.first()
+        val model = selected.first()
         navigateTo(model = model)
-        deselect(listOf(model))
+        select(model, isSelected = false)
     }
 
     fun addPath(models: List<FileModel>) = intent {
-//        reduce {
-//            (
-//                data = (state as StorageData).data + models
-//            )
-//        }
-//        reduce { StorageData(data = (state as StorageData).data + models) }
+        reduce { state.copy(data = state.data + models) }
     }
 
     fun removePath(models: List<FileModel>) = intent {
-        if (trail.value[models.map(FileModel::path)]) {
-            handle[TRAIL_KEY] = trail.value.slice(models)
-        }
-//        reduce { StorageData(data = (state as StorageData).data - models.toSet()) }
+        select(models, isSelected = false)
+        handle[TRAIL_KEY] = trail.value.navigateUp()
+
+        reduce { state.copy(data = state.data - models.toSet()) }
     }
 
     override fun onError(error: Throwable) = intent {
@@ -239,11 +198,45 @@ class StorageViewModel @Inject constructor(
 
     }
 
-    fun createDirectory(dest: Path) = intent {
-        hideDialog()
-        val src = if (selected.value.isEmpty()) currentModel.path else selected.value.first().path
+    fun onConfirmCreate(isDirectory: Boolean, dest: String) = if (isDirectory) {
+        createDirectory(dest = parsePath(dest))
+    } else {
+        createFile(dest = parsePath(dest))
+    }
+
+    fun delete() = intent {
+        val data: List<FileModel> =
+            if (selected.isEmpty()) listOf(currentModel) else selected.toList()
+
+        data.forEach {
+            logger(it.name)
+        }
+
         FileProvider.runOperation(
-            operation = UnixCreateDirectoryOperation(path = src.resolve(dest), mode = 777),
+            operation = UnixDeleteOperation(data = data.map(FileModel::path)),
+            observers = listOf(
+                FileOperationObserver(
+                    scope = viewModelScope,
+                    completion = {
+                        removePath(data)
+                    },
+                    error = { error ->
+                        onError(error = error)
+                    },
+                    action = { path ->
+                        side(SideEffect.Message(text = "Deleting... ($path"))
+                    },
+                )
+            )
+        )
+    }
+
+    private fun createDirectory(dest: Path) = intent {
+        hideDialog()
+        val src = if (selected.isEmpty()) currentModel.path else selected.first().path
+        val cDest = src.resolve(dest)
+        FileProvider.runOperation(
+            operation = UnixCreateDirectoryOperation(path = cDest, mode = 777),
             observers = listOf(
                 FileOperationObserver(
                     scope = viewModelScope,
@@ -252,15 +245,19 @@ class StorageViewModel @Inject constructor(
                     },
                     error = { error -> onError(error = error) },
                     completion = {
-                        addPath(listOf(FileModel(dest)))
+                        addPath(listOf(FileModel(cDest)))
                     }
                 )
             )
         )
     }
 
-    fun createFile(dest: Path) = intent {
+    private fun createFile(dest: Path) = intent {
         hideDialog()
+
+        val src = if (selected.isEmpty()) currentModel.path else selected.first().path
+        val cDest = src.resolve(dest)
+
         FileProvider.runOperation(
             operation = UnixCreateFileOperation(
                 path = dest,
@@ -275,10 +272,28 @@ class StorageViewModel @Inject constructor(
                     },
                     error = { error -> onError(error) },
                     completion = {
-                        addPath(listOf(FileModel(dest)))
+                        addPath(listOf(FileModel(cDest)))
                     }
                 )
             )
         )
+    }
+
+    fun onPermissionResult(perms: Map<String, Boolean>) {
+        perms.forEach { (_, granted) ->
+            if (!granted) {
+                launch()
+            } else {
+                navigateTo()
+            }
+        }
+    }
+
+    fun onSpecialPermissionResult(result: Boolean) {
+        if (!result) {
+            launch()
+        } else {
+            navigateTo()
+        }
     }
 }

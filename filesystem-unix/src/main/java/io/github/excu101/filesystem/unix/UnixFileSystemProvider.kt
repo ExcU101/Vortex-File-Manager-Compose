@@ -63,21 +63,20 @@ class UnixFileSystemProvider : FileSystemProvider() {
                 mode = mode
             )
         } catch (exception: SystemCallException) {
-            throw exception
+            notify(exception)
         }
     }
 
-    override fun newDirectorySteam(path: Path): DirectoryStream<Path> {
-        try {
-            return UnixDirectoryStream(
-                dir = path as UnixPath, UnixCalls.openDir(path.bytes),
-                onError = { error ->
-                    notify(error = error)
-                }
-            )
-        } catch (exception: SystemCallException) {
-            throw exception
-        }
+    override fun newDirectorySteam(path: Path): DirectoryStream<Path> = try {
+        UnixDirectoryStream(
+            dir = path as UnixPath, UnixCalls.openDir(path.bytes),
+            onError = { error ->
+                notify(error = error)
+            }
+        )
+    } catch (exception: SystemCallException) {
+        notify(exception)
+        DirectoryStream // returns
     }
 
     override val scheme: String

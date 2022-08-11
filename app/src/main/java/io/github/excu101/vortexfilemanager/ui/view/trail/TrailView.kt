@@ -24,6 +24,7 @@ import io.github.excu101.vortexfilemanager.data.FileModel
 import io.github.excu101.vortexfilemanager.ui.theme.Theme
 import io.github.excu101.vortexfilemanager.ui.theme.key.*
 import io.github.excu101.vortexfilemanager.ui.theme.themedColorAnimation
+import io.github.excu101.vortexfilemanager.ui.util.plus
 
 @Composable
 fun TrailRow(
@@ -80,7 +81,7 @@ private fun TrailItemView(
     title: String,
     isSelected: Boolean = false,
     isLast: Boolean = false,
-    onTrailClick: () -> Unit
+    onTrailClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier

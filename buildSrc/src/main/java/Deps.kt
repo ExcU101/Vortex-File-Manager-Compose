@@ -14,7 +14,7 @@ object Deps {
 
     // Jetpack Compose
     object Compose {
-        const val Activity = "androidx.activity:activity-compose:1.6.0-alpha05"
+        const val Activity = "androidx.activity:activity-compose:1.6.0-beta01"
 
         const val Compiler = "androidx.compose.compiler:compiler:${Versions.composeCompilerVer}"
         const val Graphics = "androidx.compose.animation:animation-graphics:${Versions.composeVer}"
@@ -61,6 +61,8 @@ object Deps {
         const val ViewModel = "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.lifecycleVer}"
         const val ViewModelCompose =
             "androidx.lifecycle:lifecycle-viewmodel-compose:${Versions.lifecycleVer}"
+        const val RuntimeCompose =
+            "androidx.lifecycle:lifecycle-runtime-compose:${Versions.lifecycleVer}"
         const val SavedStateViewModel =
             "androidx.lifecycle:lifecycle-viewmodel-savedstate:${Versions.lifecycleVer}"
     }
@@ -95,7 +97,7 @@ object Deps {
     }
 
     object UnitTest {
-        const val JUnit = "org.junit.jupiter:junit-jupiter:${Versions.junitVer}"
+        const val JUnit = "junit:junit:${Versions.junitVer}"
         const val Mockk = "io.mockk:mockk:${Versions.mockkVersion}"
         const val MockkJvm = "io.mockk:mockk-agent-jvm:${Versions.mockkVersion}"
         const val MockkAndroid = "io.mockk:mockk-android:${Versions.mockkVersion}"

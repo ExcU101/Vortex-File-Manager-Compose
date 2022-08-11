@@ -3,11 +3,9 @@ package io.github.excu101.vortexfilemanager.ui.util
 import androidx.compose.material.BottomDrawerState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import io.github.excu101.vortexfilemanager.data.FileModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -41,7 +39,7 @@ fun ModalBottomSheetState.toggle(scope: CoroutineScope) {
 
 
 @Composable
-fun <T> stateOf(value: T) = remember {
+fun <T> stateOf(value: T): MutableState<T> = remember {
     mutableStateOf(value)
 }
 

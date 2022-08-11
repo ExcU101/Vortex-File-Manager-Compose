@@ -19,7 +19,12 @@ internal object UnixCalls {
     @Throws(UnixException::class)
     external fun lstat(path: ByteArray): UnixStatusStructure
 
-    external fun delete(path: ByteArray)
+    external fun removeDirectory(path: ByteArray)
+
+    /**
+     * @throws io.github.excu101.filesystem.unix.error.UnixUnlinkException
+     **/
+    external fun unlink(path: ByteArray)
 
     @Throws(UnixException::class)
     external fun openDir(path: ByteArray): Long

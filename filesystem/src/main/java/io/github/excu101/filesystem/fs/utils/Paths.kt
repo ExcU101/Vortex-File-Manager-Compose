@@ -13,6 +13,8 @@ inline fun <reified T : Path> parsePath(input: String): T {
 
 fun String.toPath() = FileProvider.parsePath(input = this)
 
+inline fun <reified T : Path> String.toSpecificPath(): T = parsePath(input = this)
+
 fun Iterable<String>.toPaths() = map { it.toPath() }
 
 fun Collection<String>.toPath() {
@@ -23,7 +25,7 @@ fun File.asPath() = FileProvider.parsePath(input = path)
 
 fun Path.asFile() = File(this.toString())
 
-fun Path.startsWith(prefix: String) = startsWith(fileSystem.getPath(first = prefix))
+fun Path.startsWith(prefix: String) = startsWith(system.getPath(first = prefix))
 
 fun Path.properties(): DirectoryProperties = DirectoryPropertiesImpl(directory = this)
 

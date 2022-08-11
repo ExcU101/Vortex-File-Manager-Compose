@@ -3,11 +3,13 @@ package io.github.excu101.vortexfilemanager.ui.screen.main.view
 import androidx.compose.material.BottomDrawer
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import io.github.excu101.pluginsystem.model.Action
 import io.github.excu101.pluginsystem.model.GroupAction
 import io.github.excu101.pluginsystem.provider.Managers
 import io.github.excu101.ui.component.layout.SelectableSectionList
+import io.github.excu101.ui.component.utils.Content
 import io.github.excu101.vortexfilemanager.ui.MainScreenController
 import io.github.excu101.vortexfilemanager.ui.theme.Theme
 import io.github.excu101.vortexfilemanager.ui.theme.key.mainDrawerSurfaceColorKey
@@ -21,9 +23,10 @@ fun MainBottomDrawer(
     modifier: Modifier = Modifier,
     controller: MainScreenController,
     selectedAction: Action,
-    content: @Composable () -> Unit,
+    content: Content,
+) {
+    val notify: (Action) -> Unit = remember(controller) { (controller::notifyActionListeners) }
 
-    ) {
     BottomDrawer(
         modifier = modifier,
         drawerState = controller.drawer,
@@ -41,9 +44,7 @@ fun MainBottomDrawer(
                         }
                     )
                 },
-                onActionClick = { action ->
-                    controller.notifyActionListeners(action)
-                },
+                onActionClick = notify,
                 selectedActions = listOf(selectedAction)
             )
         },

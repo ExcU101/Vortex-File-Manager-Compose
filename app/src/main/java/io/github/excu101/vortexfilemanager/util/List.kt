@@ -26,7 +26,7 @@ interface ListBuilder<T> {
 
 inline fun <T> List<T>.onEmpty(
     nonEmpty: List<T>.() -> Unit = {},
-    empty: List<T>.() -> Unit
+    empty: List<T>.() -> Unit,
 ): List<T> {
     if (isEmpty()) {
         empty(this)
@@ -43,7 +43,7 @@ fun ListBuilder<Action>.item(title: String, icon: ImageVector) =
 
 fun <T, E, B : Collection<E>> ListBuilder<Pair<T, B>>.item(
     first: T,
-    second: ListBuilder<E>.() -> Unit
+    second: ListBuilder<E>.() -> Unit,
 ) {
     item(first to listBuilder(second) as B)
 }
@@ -71,11 +71,9 @@ open class MapSet<K, V> : AbstractMutableSet<V> {
 
     protected val map: MutableMap<K, V>
 
-    constructor(keyExtractor: (V) -> K) : this(keyExtractor, false)
-
-    constructor(keyExtractor: (V) -> K, isLinked: Boolean) : super() {
+    constructor(keyExtractor: (V) -> K) : super() {
         this.keyExtractor = keyExtractor
-        map = if (isLinked) linkedMapOf() else mutableMapOf()
+        map = mutableMapOf()
     }
 
     operator fun get(key: K) = map[key]
@@ -111,5 +109,17 @@ open class MapSet<K, V> : AbstractMutableSet<V> {
 
     override val size: Int
         get() = map.size
+
+}
+
+open class MutableMapSet<K, V>(keyExtractor: (V) -> K) : MapSet<K, V>(keyExtractor = keyExtractor) {
+
+    override fun add(element: V): Boolean {
+        return map.put(keyExtractor(element), element) == null
+    }
+
+    override fun remove(element: V): Boolean {
+        return map.remove(keyExtractor(element)) != null
+    }
 
 }

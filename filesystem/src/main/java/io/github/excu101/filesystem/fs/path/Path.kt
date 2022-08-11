@@ -6,7 +6,7 @@ interface Path : Comparable<Path> {
 
     val parent: Path?
 
-    val root: Path
+    val root: Path?
 
     val length: Int
 
@@ -20,7 +20,7 @@ interface Path : Comparable<Path> {
 
     val bytes: ByteArray
 
-    val fileSystem: FileSystem
+    val system: FileSystem
 
     fun startsWith(other: Path): Boolean
 
@@ -34,7 +34,7 @@ interface Path : Comparable<Path> {
 
     fun sub(from: Int, to: Int): Path
 
-    fun getName(index: Int = nameCount): Path
+    fun getName(index: Int = nameCount - 1): Path
 
     override fun toString(): String
 
